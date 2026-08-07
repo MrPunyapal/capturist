@@ -20,6 +20,21 @@ export function inferFormatFromPath(outputPath) {
     return "png";
 }
 /**
+ * Resolves the device scale factor considering scale and retina presets.
+ */
+export function resolveScaleFactor(viewport, scale, retina) {
+    if (typeof scale === "number" && scale > 0) {
+        return scale;
+    }
+    if (retina === true) {
+        return 2;
+    }
+    if (viewport?.deviceScaleFactor && viewport.deviceScaleFactor > 0) {
+        return viewport.deviceScaleFactor;
+    }
+    return 1;
+}
+/**
  * Validates and normalizes a single page configuration.
  */
 export function validatePageConfig(page, index, globalConfig) {
@@ -35,9 +50,22 @@ export function validatePageConfig(page, index, globalConfig) {
     if (!output) {
         throw new Error(`Invalid page at index ${index} (route: "${route}"): missing required "output" filename.`);
     }
-    const viewport = p.viewport
+    const baseViewport = p.viewport
         ? validateViewport(p.viewport, `page[${index}].viewport`)
         : globalConfig.viewport || DEFAULT_VIEWPORT;
+    const pageScale = typeof p.scale === "number" ? p.scale : undefined;
+    const pageRetina = typeof p.retina === "boolean" ? p.retina : undefined;
+    let resolvedScaleFactor;
+    if (pageScale !== undefined || pageRetina !== undefined) {
+        resolvedScaleFactor = resolveScaleFactor(baseViewport, pageScale, pageRetina);
+    }
+    else {
+        resolvedScaleFactor = resolveScaleFactor(baseViewport, globalConfig.scale, globalConfig.retina);
+    }
+    const viewport = {
+        ...baseViewport,
+        deviceScaleFactor: resolvedScaleFactor,
+    };
     const colorScheme = p.colorScheme || globalConfig.colorScheme || "light";
     if (!["light", "dark", "no-preference"].includes(colorScheme)) {
         throw new Error(`Invalid colorScheme "${colorScheme}" in page[${index}]. Must be "light", "dark", or "no-preference".`);
@@ -52,6 +80,8 @@ export function validatePageConfig(page, index, globalConfig) {
         output,
         outputDir: typeof p.outputDir === "string" ? p.outputDir : globalConfig.outputDir,
         viewport,
+        scale: pageScale ?? globalConfig.scale,
+        retina: pageRetina ?? globalConfig.retina,
         selector: typeof p.selector === "string" ? p.selector : undefined,
         fullPage: typeof p.fullPage === "boolean" ? p.fullPage : false,
         colorScheme,
@@ -106,7 +136,14 @@ export function validateConfig(config) {
     const outputDir = typeof raw.outputDir === "string" && raw.outputDir.trim()
         ? raw.outputDir.trim()
         : DEFAULT_OUTPUT_DIR;
-    const viewport = raw.viewport ? validateViewport(raw.viewport, "config.viewport") : DEFAULT_VIEWPORT;
+    const rawScale = typeof raw.scale === "number" ? raw.scale : undefined;
+    const rawRetina = typeof raw.retina === "boolean" ? raw.retina : undefined;
+    let viewport = raw.viewport ? validateViewport(raw.viewport, "config.viewport") : DEFAULT_VIEWPORT;
+    const globalScaleFactor = resolveScaleFactor(viewport, rawScale, rawRetina);
+    viewport = {
+        ...viewport,
+        deviceScaleFactor: globalScaleFactor,
+    };
     const browser = raw.browser || "chromium";
     if (!["chromium", "firefox", "webkit"].includes(browser)) {
         throw new Error(`Invalid browser "${browser}". Must be "chromium", "firefox", or "webkit".`);
@@ -124,6 +161,8 @@ export function validateConfig(config) {
         baseUrl: typeof raw.baseUrl === "string" ? raw.baseUrl.trim() : undefined,
         outputDir,
         viewport,
+        scale: rawScale,
+        retina: rawRetina,
         browser: browser,
         colorScheme,
         concurrency,

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] - 2026-08-08
+
+### ✨ Added
+- **Ultra-High Resolution & Retina Presets**:
+  - Added top-level and per-page `retina: true` boolean option (automatically applies 2x HiDPI scale factor).
+  - Added top-level and per-page `scale: number` multiplier option (e.g. `scale: 2` for Retina, `scale: 3` for Ultra-HD).
+- **Crisp Typography & Subpixel Font Antialiasing**:
+  - Injected deterministic font smoothing CSS (`-webkit-font-smoothing: antialiased`, `-moz-osx-font-smoothing: grayscale`, `text-rendering: optimizeLegibility`, `image-rendering: -webkit-optimize-contrast`).
+
+---
+
 ## [0.1.0] - 2026-08-08
 
 ### 🚀 Initial Preview Release

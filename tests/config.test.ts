@@ -73,6 +73,34 @@ describe("Config Validation & Normalization", () => {
     }, /positive number/);
   });
 
+  test("resolves retina: true and scale: 2 to deviceScaleFactor: 2", () => {
+    const configRetina = validateConfig({
+      retina: true,
+      pages: [{ route: "/", output: "og.png" }],
+    });
+    assert.equal(configRetina.viewport?.deviceScaleFactor, 2);
+    assert.equal(configRetina.pages[0].viewport?.deviceScaleFactor, 2);
+
+    const configScale = validateConfig({
+      scale: 3,
+      pages: [{ route: "/", output: "og.png" }],
+    });
+    assert.equal(configScale.viewport?.deviceScaleFactor, 3);
+    assert.equal(configScale.pages[0].viewport?.deviceScaleFactor, 3);
+
+    const configPageOverride = validateConfig({
+      scale: 1,
+      pages: [
+        { route: "/", output: "1x.png" },
+        { route: "/retina", output: "2x.png", retina: true },
+        { route: "/ultra", output: "3x.png", scale: 3 },
+      ],
+    });
+    assert.equal(configPageOverride.pages[0].viewport?.deviceScaleFactor, 1);
+    assert.equal(configPageOverride.pages[1].viewport?.deviceScaleFactor, 2);
+    assert.equal(configPageOverride.pages[2].viewport?.deviceScaleFactor, 3);
+  });
+
   test("defineConfig passes through object correctly", () => {
     const conf = {
       pages: [{ route: "/", output: "og.png" }],

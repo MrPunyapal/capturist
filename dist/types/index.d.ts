@@ -7,7 +7,7 @@ export interface Viewport {
     width: number;
     /** Viewport height in pixels. Default is 630. */
     height: number;
-    /** Device scale factor (e.g. 2 for Retina / HiDPI). Default is 1. */
+    /** Device scale factor (e.g. 2 for Retina / HiDPI). Default is 1 (or 2 if retina: true). */
     deviceScaleFactor?: number;
 }
 /**
@@ -82,6 +82,16 @@ export interface PageConfig {
      */
     viewport?: Viewport;
     /**
+     * Convenient scale factor multiplier (e.g. 2 for high-resolution 2x Retina, 3 for 3x).
+     * Overrides `viewport.deviceScaleFactor`.
+     */
+    scale?: number;
+    /**
+     * Shorthand boolean to enable crisp 2x Retina resolution (`scale: 2`).
+     * Default is false unless globally enabled.
+     */
+    retina?: boolean;
+    /**
      * CSS selector of a specific element to capture (e.g. "#hero", ".card", "main").
      * When specified, only that element's bounding box is captured.
      */
@@ -149,6 +159,16 @@ export interface CapturistConfig {
      * Default is { width: 1200, height: 630, deviceScaleFactor: 1 }.
      */
     viewport?: Viewport;
+    /**
+     * Convenient scale factor multiplier (e.g. 2 for 2x high-resolution Retina, 3 for 3x).
+     * Overrides `viewport.deviceScaleFactor`.
+     */
+    scale?: number;
+    /**
+     * Shorthand boolean to enable crisp 2x Retina resolution across all pages (`scale: 2`).
+     * Default is false (1x).
+     */
+    retina?: boolean;
     /**
      * Array of page targets to capture.
      */

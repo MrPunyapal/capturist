@@ -7,6 +7,10 @@ export declare const DEFAULT_TIMEOUT = 30000;
  */
 export declare function inferFormatFromPath(outputPath: string): ScreenshotFormat;
 /**
+ * Resolves the device scale factor considering scale and retina presets.
+ */
+export declare function resolveScaleFactor(viewport?: Viewport, scale?: number, retina?: boolean): number;
+/**
  * Validates and normalizes a single page configuration.
  */
 export declare function validatePageConfig(page: unknown, index: number, globalConfig: CapturistConfig): PageConfig;

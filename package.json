@@ -1,6 +1,6 @@
 {
   "name": "capturist",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Production-grade, configuration-driven static screenshot generator for websites and Open Graph images.",
   "keywords": [
     "screenshot",

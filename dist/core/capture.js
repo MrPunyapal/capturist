@@ -2,9 +2,19 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
 /**
- * CSS injected into pages to enforce pixel-perfect determinism.
+ * CSS injected into pages to enforce pixel-perfect determinism and ultra-crisp typography.
  */
 const DETERMINISTIC_CSS = `
+html, body {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+img, svg {
+  image-rendering: -webkit-optimize-contrast !important;
+}
+
 *, *::before, *::after {
   -webkit-transition: none !important;
   -moz-transition: none !important;
