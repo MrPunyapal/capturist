@@ -1,6 +1,6 @@
 {
   "name": "page-shot",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Production-grade, configuration-driven static screenshot generator for websites and Open Graph images.",
   "keywords": [
     "screenshot",
@@ -12,7 +12,7 @@
     "web-page-screenshot",
     "social-preview"
   ],
-  "author": "Punyapal Manvi",
+  "author": "Punyapal Shah <mrpunyapal@gmail.com> (https://mrpunyapal.dev)",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -22,17 +22,21 @@
     "url": "https://github.com/MrPunyapal/page-shot/issues"
   },
   "homepage": "https://github.com/MrPunyapal/page-shot#readme",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/MrPunyapal"
+  },
   "bin": {
     "page-shot": "./bin/page-shot.js"
   },
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -41,12 +45,18 @@
     "bin",
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "sideEffects": false,
   "scripts": {
     "build": "tsc",
-    "test": "node --test dist-test/**/*.test.js"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "prepublishOnly": "npm run build && npm test"
   },
   "peerDependencies": {
     "playwright": ">=1.30.0"

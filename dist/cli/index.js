@@ -4,7 +4,7 @@ import { parseCliArgs, printHelp } from "./args.js";
 import { loadConfig } from "../config/loader.js";
 import { generateScreenshots } from "../core/runner.js";
 import { logger } from "../utils/logger.js";
-const VERSION = "1.0.0";
+const VERSION = "0.1.0";
 const STARTER_CONFIG = `import { defineConfig } from "page-shot";
 
 export default defineConfig({

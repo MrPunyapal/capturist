@@ -6,7 +6,7 @@ import { generateScreenshots } from "../core/runner.js";
 import { logger } from "../utils/logger.js";
 import type { PageShotConfig } from "../types/index.js";
 
-const VERSION = "1.0.0";
+const VERSION = "0.1.0";
 
 const STARTER_CONFIG = `import { defineConfig } from "page-shot";
 
