@@ -11,8 +11,8 @@ describe("End-to-End Screenshot Capture Engine", () => {
   let tmpOutputDir: string;
 
   before(async () => {
-    tmpSiteDir = path.join(os.tmpdir(), `sitesnap-site-${Date.now()}`);
-    tmpOutputDir = path.join(os.tmpdir(), `sitesnap-out-${Date.now()}`);
+    tmpSiteDir = path.join(os.tmpdir(), `snapsite-site-${Date.now()}`);
+    tmpOutputDir = path.join(os.tmpdir(), `snapsite-out-${Date.now()}`);
 
     await fs.mkdir(tmpSiteDir, { recursive: true });
     await fs.mkdir(tmpOutputDir, { recursive: true });
