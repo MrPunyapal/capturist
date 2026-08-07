@@ -16,12 +16,12 @@ Many websites generate Open Graph images using Canva, Figma, Photoshop, or canva
 
 **`capturist` flips this workflow: your website itself becomes the social preview.**
 
-```
-/           ──►  public/master-og-image.png
-/projects   ──►  public/og/projects.png
-/talks      ──►  public/og/talks.png
-/opensource ──►  public/og/opensource.png
-/resume     ──►  public/og/resume.png
+```text
+/             ──►  public/og/home.png
+/features     ──►  public/og/features.png
+/pricing      ──►  public/og/pricing.png
+/docs         ──►  public/og/docs.png
+/blog/launch  ──►  public/og/blog-launch.png
 ```
 
 Whenever your website changes, running `capturist` automatically updates every preview image deterministically.
@@ -33,9 +33,11 @@ Whenever your website changes, running `capturist` automatically updates every p
 - 🎯 **Configuration-driven**: Intuitive, type-safe `defineConfig` API like Vite, Vitest, and ESLint.
 - ⚡ **Playwright Powered**: Handles browser launch, parallel worker pools, and clean teardown internally.
 - 🧊 **Deterministic Screenshots**: Automatically waits for `document.fonts.ready`, freezes CSS animations & transitions, and disables blinking carets.
-- 📦 **Built-in Static Server**: Preview and capture local static folders (`./dist`, `./public`) without running separate dev server commands.
+- 🔍 **Subpixel Font Antialiasing**: Injects font smoothing rules for razor-sharp typography.
+- 📱 **Retina & HiDPI Presets**: Native `retina: true` and `scale: 2` support for 2400 × 1260 social sharing cards.
+- 📦 **Built-in Static Server**: Preview and capture local static folders (`./dist`, `./build`, `./out`) without running separate dev server commands.
 - 🌓 **Color Scheme Emulation**: Render light mode, dark mode, or both.
-- 🔍 **Element & Full Page Capture**: Target specific CSS selectors (`#hero`, `.card`) or capture entire scrollable documents.
+- 🔍 **Element & Full Page Capture**: Target specific CSS selectors (`#hero`, `.card`, `#pricing-table`) or capture entire scrollable documents.
 - 🧩 **Zero Playwright Boilerplate**: Users don't need to write custom browser automation scripts.
 - 🚀 **Framework Agnostic**: Works with Vite, Next.js, Astro, SvelteKit, Remix, Nuxt, and static HTML.
 
@@ -62,30 +64,27 @@ npx playwright install chromium
 npx capturist init
 ```
 
-This creates `capturist.config.ts` (or `.js`):
+This creates `capturist.config.ts` (or `.js` / `.mjs`):
 
 ```ts
 import { defineConfig } from "capturist";
 
 export default defineConfig({
   baseUrl: "http://localhost:3000",
-  viewport: {
-    width: 1200,
-    height: 630,
-  },
-  outputDir: "public",
+  retina: true, // Crisp 2x HiDPI previews
+  outputDir: "public/og",
   pages: [
     {
       route: "/",
-      output: "master-og-image.png",
+      output: "home.png",
     },
     {
-      route: "/projects",
-      output: "og/projects.png",
+      route: "/features",
+      output: "features.png",
     },
     {
-      route: "/talks",
-      output: "og/talks.png",
+      route: "/pricing",
+      output: "pricing.png",
     },
   ],
 });
@@ -112,14 +111,14 @@ npm run generate:og
 
 Output:
 ```text
-📸 capturist v0.1.0 — Deterministic static screenshot engine
+📸 capturist v0.1.1 — Deterministic static screenshot engine
 
 ℹ Loaded config: capturist.config.ts
-  ✓ / → master-og-image.png (1200x630) 142.5 KB 340ms
-  ✓ /projects → og/projects.png (1200x630) 168.2 KB 285ms
-  ✓ /talks → og/talks.png (1200x630) 129.4 KB 260ms
+  ✓ / → public/og/home.png (1200x630) 184.5 KB 340ms
+  ✓ /features → public/og/features.png (1200x630) 198.2 KB 285ms
+  ✓ /pricing → public/og/pricing.png (1200x630) 162.4 KB 260ms
 
-Done! Generated 3/3 screenshots in 0.88s → public
+Done! Generated 3/3 screenshots in 0.88s → public/og
 ```
 
 ---
@@ -130,8 +129,10 @@ Done! Generated 3/3 screenshots in 0.88s → public
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `baseUrl` | `string` | `undefined` | Base URL prepended to relative routes (e.g. `http://localhost:5173`). |
+| `baseUrl` | `string` | `undefined` | Base URL prepended to relative routes (e.g. `http://localhost:3000`). |
 | `outputDir` | `string` | `"public"` | Default directory where screenshots are saved. |
+| `retina` | `boolean` | `false` | Shorthand to enable 2x HiDPI Retina resolution (`scale: 2`). |
+| `scale` | `number` | `1` | Device pixel ratio multiplier (e.g. `2` or `3`). |
 | `viewport` | `Viewport` | `{ width: 1200, height: 630 }` | Default viewport dimensions and scale factor. |
 | `pages` | `PageConfig[]` | `[]` | Array of page targets to capture. |
 | `concurrency` | `number` | `os.cpus().length` | Maximum concurrent browser pages. |
@@ -148,9 +149,11 @@ Done! Generated 3/3 screenshots in 0.88s → public
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `route` / `url` | `string` | **Required** | Route path (e.g. `"/about"`) or fully qualified URL. |
-| `output` | `string` | **Required** | Output filename or path (e.g. `"master-og-image.png"`, `"og/card.png"`). |
+| `route` / `url` | `string` | **Required** | Route path (e.g. `"/pricing"`) or fully qualified URL. |
+| `output` | `string` | **Required** | Output filename or path (e.g. `"pricing.png"`, `"og/card.png"`). |
 | `outputDir` | `string` | `global.outputDir` | Per-page output directory override. |
+| `retina` | `boolean` | `global.retina` | Per-page 2x Retina resolution toggle. |
+| `scale` | `number` | `global.scale` | Per-page device pixel ratio override. |
 | `viewport` | `Viewport` | `global.viewport` | Per-page viewport dimensions. |
 | `selector` | `string` | `undefined` | Capture bounding box of a specific element (e.g. `"#hero-card"`). |
 | `fullPage` | `boolean` | `false` | Capture the full scrollable page height. |
@@ -200,11 +203,13 @@ export default defineConfig({
     dir: "./dist",
     buildCommand: "npm run build",
   },
+  retina: true,
+  outputDir: "public/og",
   pages: [
-    { route: "/", output: "master-og-image.png" },
-    { route: "/projects", output: "og/projects.png" },
-    { route: "/talks", output: "og/talks.png" },
-    { route: "/resume", output: "og/resume.png" },
+    { route: "/", output: "home.png" },
+    { route: "/features", output: "features.png" },
+    { route: "/pricing", output: "pricing.png" },
+    { route: "/changelog", output: "changelog.png" },
   ],
 });
 ```
@@ -218,12 +223,12 @@ import { defineConfig } from "capturist";
 
 export default defineConfig({
   viewport: {
-    width: 2400,
-    height: 1260,
-    deviceScaleFactor: 2,
+    width: 1200,
+    height: 630,
+    deviceScaleFactor: 2, // 2x physical resolution (2400x1260)
   },
   pages: [
-    { route: "/", output: "master-og-image.png" },
+    { route: "/", output: "home.png" },
   ],
 });
 ```
@@ -236,8 +241,8 @@ import { defineConfig } from "capturist";
 export default defineConfig({
   baseUrl: "http://localhost:3000",
   pages: [
-    { route: "/", output: "og/home-light.png", colorScheme: "light" },
-    { route: "/", output: "og/home-dark.png", colorScheme: "dark" },
+    { route: "/", output: "home-light.png", colorScheme: "light" },
+    { route: "/", output: "home-dark.png", colorScheme: "dark" },
   ],
 });
 ```
@@ -274,7 +279,7 @@ export default defineConfig({
   pages: [
     {
       route: "/dashboard",
-      output: "og/dashboard-analytics.png",
+      output: "dashboard-analytics.png",
       beforeScreenshot: async ({ page }) => {
         // Switch to the 'Analytics' tab
         await page.click("button#tab-analytics");
@@ -295,10 +300,11 @@ You can use `capturist` directly from your Node.js or TypeScript build scripts:
 import { generateScreenshots, defineConfig } from "capturist";
 
 const config = defineConfig({
-  baseUrl: "https://mrpunyapal.dev",
+  baseUrl: "http://localhost:3000",
+  retina: true,
   pages: [
-    { route: "/", output: "public/master-og-image.png" },
-    { route: "/projects", output: "public/og/projects.png" },
+    { route: "/", output: "public/og/home.png" },
+    { route: "/pricing", output: "public/og/pricing.png" },
   ],
 });
 
