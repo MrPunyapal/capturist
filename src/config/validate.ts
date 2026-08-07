@@ -1,6 +1,6 @@
 import * as os from "node:os";
 import type {
-  SiteSnapConfig,
+  SnapSiteConfig,
   PageConfig,
   Viewport,
   ScreenshotFormat,
@@ -36,7 +36,7 @@ export function inferFormatFromPath(outputPath: string): ScreenshotFormat {
 export function validatePageConfig(
   page: unknown,
   index: number,
-  globalConfig: SiteSnapConfig
+  globalConfig: SnapSiteConfig
 ): PageConfig {
   if (!page || typeof page !== "object") {
     throw new Error(`Invalid page at index ${index}: must be an object.`);
@@ -127,12 +127,12 @@ export function validateViewport(viewport: unknown, label = "viewport"): Viewpor
 }
 
 /**
- * Validates and applies defaults to a full `SiteSnapConfig`.
+ * Validates and applies defaults to a full `SnapSiteConfig`.
  */
-export function validateConfig(config: unknown): SiteSnapConfig {
+export function validateConfig(config: unknown): SnapSiteConfig {
   if (!config || typeof config !== "object") {
     throw new Error(
-      "Invalid configuration: sitesnap expects a configuration object or function returning an object."
+      "Invalid configuration: snapsite expects a configuration object or function returning an object."
     );
   }
 
@@ -175,7 +175,7 @@ export function validateConfig(config: unknown): SiteSnapConfig {
 
   const timeout = typeof raw.timeout === "number" && raw.timeout > 0 ? raw.timeout : DEFAULT_TIMEOUT;
 
-  const normalizedConfig: SiteSnapConfig = {
+  const normalizedConfig: SnapSiteConfig = {
     baseUrl: typeof raw.baseUrl === "string" ? raw.baseUrl.trim() : undefined,
     outputDir,
     viewport,

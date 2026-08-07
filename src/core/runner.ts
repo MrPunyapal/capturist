@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import type { Browser } from "playwright-core";
 import type {
-  SiteSnapConfig,
+  SnapSiteConfig,
   PageConfig,
   ScreenshotResult,
   RunSummary,
@@ -43,7 +43,7 @@ async function asyncPool<T, R>(
  * Primary programmatic orchestrator: generates all screenshots according to configuration.
  */
 export async function generateScreenshots(
-  config: SiteSnapConfig,
+  config: SnapSiteConfig,
   options: { cwd?: string; onProgress?: (result: ScreenshotResult) => void } = {}
 ): Promise<RunSummary> {
   const cwd = options.cwd || process.cwd();
@@ -63,13 +63,13 @@ export async function generateScreenshots(
     activeBaseUrl = server.url;
   }
 
-  if (!activeBaseUrl && config.pages.some((p) => !(p.route || p.url || "").startsWith("http"))) {
+  if (!activeBaseUrl && config.pages.some((p: PageConfig) => !(p.route || p.url || "").startsWith("http"))) {
     throw new Error(
       'A "baseUrl" or "server" configuration is required when capturing relative routes (e.g. "/").'
     );
   }
 
-  const effectiveConfig: SiteSnapConfig = {
+  const effectiveConfig: SnapSiteConfig = {
     ...config,
     baseUrl: activeBaseUrl,
   };

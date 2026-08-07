@@ -28,7 +28,7 @@ export class Logger {
 
   banner(version = "0.1.0"): void {
     console.log(
-      `\n${colors.bold}${colors.cyan}📸 sitesnap${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`
+      `\n${colors.bold}${colors.cyan}📸 snapsite${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`
     );
   }
 

@@ -1,5 +1,5 @@
 {
-  "name": "sitesnap",
+  "name": "snapsite",
   "version": "0.1.0",
   "description": "Production-grade, configuration-driven static screenshot generator for websites and Open Graph images.",
   "keywords": [
@@ -11,24 +11,24 @@
     "preview-generator",
     "web-page-screenshot",
     "social-preview",
-    "sitesnap"
+    "snapsite"
   ],
   "author": "Punyapal Shah <mrpunyapal@gmail.com> (https://mrpunyapal.dev)",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrPunyapal/sitesnap.git"
+    "url": "git+https://github.com/MrPunyapal/snapsite.git"
   },
   "bugs": {
-    "url": "https://github.com/MrPunyapal/sitesnap/issues"
+    "url": "https://github.com/MrPunyapal/snapsite/issues"
   },
-  "homepage": "https://github.com/MrPunyapal/sitesnap#readme",
+  "homepage": "https://github.com/MrPunyapal/snapsite#readme",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/MrPunyapal"
   },
   "bin": {
-    "sitesnap": "./bin/sitesnap.js"
+    "snapsite": "./bin/snapsite.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

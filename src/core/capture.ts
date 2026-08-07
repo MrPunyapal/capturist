@@ -3,7 +3,7 @@ import * as path from "node:path";
 import type { BrowserContext, Page } from "playwright-core";
 import type {
   PageConfig,
-  SiteSnapConfig,
+  SnapSiteConfig,
   ScreenshotResult,
 } from "../types/index.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
@@ -38,7 +38,7 @@ const DISABLE_ANIMATIONS_CSS = `
 export async function capturePageScreenshot(
   context: BrowserContext,
   pageConfig: PageConfig,
-  globalConfig: SiteSnapConfig,
+  globalConfig: SnapSiteConfig,
   targetFilePath: string
 ): Promise<ScreenshotResult> {
   const startTime = Date.now();

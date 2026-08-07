@@ -22,7 +22,7 @@ export class Logger {
         this.verbose = verbose;
     }
     banner(version = "0.1.0") {
-        console.log(`\n${colors.bold}${colors.cyan}📸 sitesnap${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`);
+        console.log(`\n${colors.bold}${colors.cyan}📸 snapsite${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`);
     }
     info(msg) {
         console.log(`${colors.cyan}ℹ${colors.reset} ${msg}`);

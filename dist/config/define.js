@@ -1,9 +1,9 @@
 /**
- * Type-safe configuration helper function for `sitesnap.config.ts` or `sitesnap.config.js`.
+ * Type-safe configuration helper function for `snapsite.config.ts` or `snapsite.config.js`.
  *
  * @example
  * ```ts
- * import { defineConfig } from "sitesnap";
+ * import { defineConfig } from "snapsite";
  *
  * export default defineConfig({
  *   viewport: { width: 1200, height: 630 },

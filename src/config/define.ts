@@ -1,11 +1,11 @@
-import type { SiteSnapConfig } from "../types/index.js";
+import type { SnapSiteConfig } from "../types/index.js";
 
 /**
- * Type-safe configuration helper function for `sitesnap.config.ts` or `sitesnap.config.js`.
+ * Type-safe configuration helper function for `snapsite.config.ts` or `snapsite.config.js`.
  *
  * @example
  * ```ts
- * import { defineConfig } from "sitesnap";
+ * import { defineConfig } from "snapsite";
  *
  * export default defineConfig({
  *   viewport: { width: 1200, height: 630 },
@@ -17,7 +17,7 @@ import type { SiteSnapConfig } from "../types/index.js";
  * ```
  */
 export function defineConfig(
-  config: SiteSnapConfig | (() => SiteSnapConfig | Promise<SiteSnapConfig>)
-): SiteSnapConfig | (() => SiteSnapConfig | Promise<SiteSnapConfig>) {
+  config: SnapSiteConfig | (() => SnapSiteConfig | Promise<SnapSiteConfig>)
+): SnapSiteConfig | (() => SnapSiteConfig | Promise<SnapSiteConfig>) {
   return config;
 }

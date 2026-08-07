@@ -1,4 +1,4 @@
-import type { SiteSnapConfig } from "../types/index.js";
+import type { SnapSiteConfig } from "../types/index.js";
 export declare const CONFIG_CANDIDATES: string[];
 /**
  * Finds the config file in the target directory or checks the specified custom path.
@@ -7,12 +7,12 @@ export declare function resolveConfigFile(cwd: string, customPath?: string): str
 /**
  * Loads and executes a TypeScript or JavaScript config file.
  */
-export declare function loadConfigFile(configPath: string): Promise<SiteSnapConfig>;
+export declare function loadConfigFile(configPath: string): Promise<SnapSiteConfig>;
 /**
  * Automatically locates, loads, and validates configuration.
  */
 export declare function loadConfig(cwd?: string, customPath?: string): Promise<{
-    config: SiteSnapConfig;
+    config: SnapSiteConfig;
     configPath: string;
 }>;
 //# sourceMappingURL=loader.d.ts.map

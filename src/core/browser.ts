@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext, LaunchOptions } from "playwright-core";
-import type { SiteSnapConfig, Viewport, ColorScheme } from "../types/index.js";
+import type { SnapSiteConfig, Viewport, ColorScheme } from "../types/index.js";
 
 /**
  * Resolves the Playwright browser module dynamically (playwright or playwright-core).
@@ -29,7 +29,7 @@ export async function getPlaywrightBrowser(browserType: "chromium" | "firefox" |
 /**
  * Launches a browser instance with production-grade flags for deterministic rendering.
  */
-export async function launchBrowser(config: SiteSnapConfig): Promise<Browser> {
+export async function launchBrowser(config: SnapSiteConfig): Promise<Browser> {
   const browserName = config.browser || "chromium";
   const engine = await getPlaywrightBrowser(browserName);
 
@@ -66,7 +66,7 @@ export async function createBrowserContext(
   browser: Browser,
   viewport: Viewport,
   colorScheme: ColorScheme = "light",
-  config: SiteSnapConfig
+  config: SnapSiteConfig
 ): Promise<BrowserContext> {
   return await browser.newContext({
     viewport: {
