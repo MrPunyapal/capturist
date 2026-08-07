@@ -1,0 +1,59 @@
+{
+  "name": "page-shot",
+  "version": "1.0.0",
+  "description": "Production-grade, configuration-driven static screenshot generator for websites and Open Graph images.",
+  "keywords": [
+    "screenshot",
+    "playwright",
+    "open-graph",
+    "og-image",
+    "static-site",
+    "preview-generator",
+    "web-page-screenshot",
+    "social-preview"
+  ],
+  "author": "Punyapal Manvi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrPunyapal/page-shot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MrPunyapal/page-shot/issues"
+  },
+  "homepage": "https://github.com/MrPunyapal/page-shot#readme",
+  "bin": {
+    "page-shot": "./bin/page-shot.js"
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist-test/**/*.test.js"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.30.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  }
+}
