@@ -1,20 +1,20 @@
-# 📸 page-shot
+# 📸 sitesnap
 
 > **The canonical, configuration-driven screenshot engine for websites and Open Graph images.**  
 > Turn your actual web pages into pixel-perfect static screenshots, social preview cards, and visual assets automatically.
 
-[![npm version](https://img.shields.io/npm/v/page-shot.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/page-shot)
+[![npm version](https://img.shields.io/npm/v/sitesnap.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/sitesnap)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 [![Playwright](https://img.shields.io/badge/powered%20by-Playwright-2EAD33.svg?style=flat-square&logo=playwright)](https://playwright.dev/)
 [![TypeScript](https://img.shields.io/badge/written%20in-TypeScript-3178C6.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 
 ---
 
-## 💡 Why page-shot?
+## 💡 Why sitesnap?
 
 Many websites generate Open Graph images using Canva, Figma, Photoshop, or canvas-based SVG generators. These quickly become stale: when you change your website layout, design, or copy, the social share images lag behind.
 
-**`page-shot` flips this workflow: your website itself becomes the social preview.**
+**`sitesnap` flips this workflow: your website itself becomes the social preview.**
 
 ```
 /           ──►  public/master-og-image.png
@@ -24,7 +24,7 @@ Many websites generate Open Graph images using Canva, Figma, Photoshop, or canva
 /resume     ──►  public/og/resume.png
 ```
 
-Whenever your website changes, running `page-shot` automatically updates every preview image deterministically.
+Whenever your website changes, running `sitesnap` automatically updates every preview image deterministically.
 
 ---
 
@@ -44,7 +44,7 @@ Whenever your website changes, running `page-shot` automatically updates every p
 ## 📦 Installation
 
 ```bash
-npm install -D page-shot playwright
+npm install -D sitesnap playwright
 ```
 
 *Note: You can also install only the Chromium browser engine:*
@@ -59,13 +59,13 @@ npx playwright install chromium
 ### 1. Initialize configuration
 
 ```bash
-npx page-shot init
+npx sitesnap init
 ```
 
-This creates `page-shot.config.ts` (or `.js`):
+This creates `sitesnap.config.ts` (or `.js`):
 
 ```ts
-import { defineConfig } from "page-shot";
+import { defineConfig } from "sitesnap";
 
 export default defineConfig({
   baseUrl: "http://localhost:3000",
@@ -99,7 +99,7 @@ In your `package.json`:
 {
   "scripts": {
     "build": "vite build",
-    "generate:og": "page-shot"
+    "generate:og": "sitesnap"
   }
 }
 ```
@@ -112,9 +112,9 @@ npm run generate:og
 
 Output:
 ```text
-📸 page-shot v1.0.0 — Deterministic static screenshot engine
+📸 sitesnap v0.1.0 — Deterministic static screenshot engine
 
-ℹ Loaded config: page-shot.config.ts
+ℹ Loaded config: sitesnap.config.ts
   ✓ / → master-og-image.png (1200x630) 142.5 KB 340ms
   ✓ /projects → og/projects.png (1200x630) 168.2 KB 285ms
   ✓ /talks → og/talks.png (1200x630) 129.4 KB 260ms
@@ -126,7 +126,7 @@ Done! Generated 3/3 screenshots in 0.88s → public
 
 ## 🛠 Configuration Reference
 
-### Global Options (`PageShotConfig`)
+### Global Options (`SiteSnapConfig`)
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -149,7 +149,7 @@ Done! Generated 3/3 screenshots in 0.88s → public
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `route` / `url` | `string` | **Required** | Route path (e.g. `"/about"`) or fully qualified URL. |
-| `output` | `string` | **Required** | Output filename or path (e.g. `"master-og.png"`, `"og/card.png"`). |
+| `output` | `string` | **Required** | Output filename or path (e.g. `"master-og-image.png"`, `"og/card.png"`). |
 | `outputDir` | `string` | `global.outputDir` | Per-page output directory override. |
 | `viewport` | `Viewport` | `global.viewport` | Per-page viewport dimensions. |
 | `selector` | `string` | `undefined` | Capture bounding box of a specific element (e.g. `"#hero-card"`). |
@@ -168,7 +168,7 @@ Done! Generated 3/3 screenshots in 0.88s → public
 ## 🖥 CLI Usage
 
 ```bash
-page-shot [command] [options]
+sitesnap [command] [options]
 ```
 
 ### Options
@@ -190,14 +190,15 @@ page-shot [command] [options]
 
 ### 1. Capturing a Built Static Site Zero-Config
 
-No need to start a dev server manually: `page-shot` includes a built-in static server that serves `./dist` directly!
+No need to start a dev server manually: `sitesnap` includes a built-in static server that serves `./dist` directly and can execute your build script!
 
 ```ts
-import { defineConfig } from "page-shot";
+import { defineConfig } from "sitesnap";
 
 export default defineConfig({
   server: {
     dir: "./dist",
+    buildCommand: "npm run build",
   },
   pages: [
     { route: "/", output: "master-og-image.png" },
@@ -213,6 +214,8 @@ export default defineConfig({
 For crisp Retina previews across Twitter, LinkedIn, and Facebook:
 
 ```ts
+import { defineConfig } from "sitesnap";
+
 export default defineConfig({
   viewport: {
     width: 2400,
@@ -228,6 +231,8 @@ export default defineConfig({
 ### 3. Light and Dark Mode Previews
 
 ```ts
+import { defineConfig } from "sitesnap";
+
 export default defineConfig({
   baseUrl: "http://localhost:3000",
   pages: [
@@ -242,6 +247,8 @@ export default defineConfig({
 Capture only a specific widget, hero card, or diagram:
 
 ```ts
+import { defineConfig } from "sitesnap";
+
 export default defineConfig({
   baseUrl: "http://localhost:3000",
   pages: [
@@ -260,6 +267,8 @@ export default defineConfig({
 Interact with your UI (e.g. close modals, click tabs, accept cookies) before capturing:
 
 ```ts
+import { defineConfig } from "sitesnap";
+
 export default defineConfig({
   baseUrl: "http://localhost:3000",
   pages: [
@@ -280,10 +289,10 @@ export default defineConfig({
 
 ## 💻 Programmatic API
 
-You can use `page-shot` directly from your Node.js or TypeScript build scripts:
+You can use `sitesnap` directly from your Node.js or TypeScript build scripts:
 
 ```ts
-import { generateScreenshots, defineConfig } from "page-shot";
+import { generateScreenshots, defineConfig } from "sitesnap";
 
 const config = defineConfig({
   baseUrl: "https://mrpunyapal.dev",
@@ -328,7 +337,7 @@ jobs:
       - name: Build site & generate screenshots
         run: |
           npm run build
-          npx page-shot
+          npx sitesnap
 ```
 
 ---
@@ -345,4 +354,4 @@ jobs:
 
 ## 📄 License
 
-MIT © [Punyapal Manvi](https://github.com/MrPunyapal)
+MIT © [Punyapal Shah](https://github.com/MrPunyapal)

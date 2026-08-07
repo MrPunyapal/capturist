@@ -1,4 +1,4 @@
-import type { PageShotConfig, PageConfig, Viewport, ScreenshotFormat } from "../types/index.js";
+import type { SiteSnapConfig, PageConfig, Viewport, ScreenshotFormat } from "../types/index.js";
 export declare const DEFAULT_VIEWPORT: Viewport;
 export declare const DEFAULT_OUTPUT_DIR = "public";
 export declare const DEFAULT_TIMEOUT = 30000;
@@ -9,13 +9,13 @@ export declare function inferFormatFromPath(outputPath: string): ScreenshotForma
 /**
  * Validates and normalizes a single page configuration.
  */
-export declare function validatePageConfig(page: unknown, index: number, globalConfig: PageShotConfig): PageConfig;
+export declare function validatePageConfig(page: unknown, index: number, globalConfig: SiteSnapConfig): PageConfig;
 /**
  * Validates a viewport object.
  */
 export declare function validateViewport(viewport: unknown, label?: string): Viewport;
 /**
- * Validates and applies defaults to a full `PageShotConfig`.
+ * Validates and applies defaults to a full `SiteSnapConfig`.
  */
-export declare function validateConfig(config: unknown): PageShotConfig;
+export declare function validateConfig(config: unknown): SiteSnapConfig;
 //# sourceMappingURL=validate.d.ts.map

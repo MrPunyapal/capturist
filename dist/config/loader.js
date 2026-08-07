@@ -4,6 +4,12 @@ import * as fsSync from "node:fs";
 import { pathToFileURL } from "node:url";
 import { validateConfig } from "./validate.js";
 export const CONFIG_CANDIDATES = [
+    "sitesnap.config.ts",
+    "sitesnap.config.js",
+    "sitesnap.config.mjs",
+    "sitesnap.config.cjs",
+    "sitesnap.config.json",
+    // Legacy / migration fallback
     "page-shot.config.ts",
     "page-shot.config.js",
     "page-shot.config.mjs",
@@ -52,10 +58,11 @@ export async function loadConfigFile(configPath) {
             // Remove type imports and simple TS type annotations if running in standard Node
             const stripped = code
                 .replace(/import\s+type\s+.*?from\s+['"].*?['"];?/g, "")
+                .replace(/:\s*SiteSnapConfig/g, "")
                 .replace(/:\s*PageShotConfig/g, "")
                 .replace(/:\s*PageConfig\[\]/g, "")
                 .replace(/:\s*Viewport/g, "");
-            const tmpFile = path.resolve(path.dirname(configPath), `.page-shot.tmp.${Date.now()}.mjs`);
+            const tmpFile = path.resolve(path.dirname(configPath), `.sitesnap.tmp.${Date.now()}.mjs`);
             try {
                 await fs.writeFile(tmpFile, stripped, "utf-8");
                 const imported = await import(`${pathToFileURL(tmpFile).href}`);
@@ -84,7 +91,7 @@ export async function loadConfigFile(configPath) {
 export async function loadConfig(cwd = process.cwd(), customPath) {
     const resolvedPath = resolveConfigFile(cwd, customPath);
     if (!resolvedPath) {
-        throw new Error(`No page-shot configuration file found in "${cwd}". Create a "page-shot.config.ts" or "page-shot.config.js" or use "page-shot init".`);
+        throw new Error(`No sitesnap configuration file found in "${cwd}". Create a "sitesnap.config.ts" or "sitesnap.config.js" or use "sitesnap init".`);
     }
     const config = await loadConfigFile(resolvedPath);
     return { config, configPath: resolvedPath };

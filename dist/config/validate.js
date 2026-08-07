@@ -90,11 +90,11 @@ export function validateViewport(viewport, label = "viewport") {
     return { width, height, deviceScaleFactor };
 }
 /**
- * Validates and applies defaults to a full `PageShotConfig`.
+ * Validates and applies defaults to a full `SiteSnapConfig`.
  */
 export function validateConfig(config) {
     if (!config || typeof config !== "object") {
-        throw new Error("Invalid configuration: page-shot expects a configuration object or function returning an object.");
+        throw new Error("Invalid configuration: sitesnap expects a configuration object or function returning an object.");
     }
     const raw = config;
     if (!raw.pages || !Array.isArray(raw.pages)) {

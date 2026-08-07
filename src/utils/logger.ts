@@ -26,9 +26,9 @@ export class Logger {
     this.verbose = verbose;
   }
 
-  banner(version = "1.0.0"): void {
+  banner(version = "0.1.0"): void {
     console.log(
-      `\n${colors.bold}${colors.cyan}📸 page-shot${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`
+      `\n${colors.bold}${colors.cyan}📸 sitesnap${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`
     );
   }
 

@@ -4,11 +4,11 @@ import { parseCliArgs, printHelp } from "./args.js";
 import { loadConfig } from "../config/loader.js";
 import { generateScreenshots } from "../core/runner.js";
 import { logger } from "../utils/logger.js";
-import type { PageShotConfig } from "../types/index.js";
+import type { SiteSnapConfig } from "../types/index.js";
 
 const VERSION = "0.1.0";
 
-const STARTER_CONFIG = `import { defineConfig } from "page-shot";
+const STARTER_CONFIG = `import { defineConfig } from "sitesnap";
 
 export default defineConfig({
   // Base URL of your website or local dev server
@@ -45,7 +45,7 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
   const options = parseCliArgs(argv);
 
   if (options.version) {
-    console.log(`page-shot v${VERSION}`);
+    console.log(`sitesnap v${VERSION}`);
     return;
   }
 
@@ -61,14 +61,14 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
   // Handle "init" command
   if (options.init) {
     logger.banner(VERSION);
-    const targetFile = path.resolve(process.cwd(), "page-shot.config.js");
+    const targetFile = path.resolve(process.cwd(), "sitesnap.config.js");
     try {
       await fs.access(targetFile);
       logger.warn(`Configuration file already exists: ${targetFile}`);
     } catch {
       await fs.writeFile(targetFile, STARTER_CONFIG, "utf-8");
       logger.success(`Created configuration starter at: ${targetFile}`);
-      logger.info(`Run "page-shot" to generate your first screenshots.`);
+      logger.info(`Run "sitesnap" to generate your first screenshots.`);
     }
     return;
   }

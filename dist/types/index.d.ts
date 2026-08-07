@@ -49,8 +49,8 @@ export interface ScreenshotHookContext {
     outputPath: string;
     /** Resolved configuration for this specific page. */
     pageConfig: PageConfig;
-    /** The full global PageShotConfig. */
-    config: PageShotConfig;
+    /** The full global SiteSnapConfig. */
+    config: SiteSnapConfig;
 }
 /**
  * Function called before a screenshot is taken, allowing DOM manipulation, interactions, or state setup.
@@ -131,9 +131,9 @@ export interface PageConfig {
     metadata?: Record<string, unknown>;
 }
 /**
- * Root configuration for page-shot.
+ * Root configuration for sitesnap.
  */
-export interface PageShotConfig {
+export interface SiteSnapConfig {
     /**
      * Base URL prepended to all relative routes (e.g. "http://localhost:3000", "https://example.com").
      * If not specified and `server` is configured, the local server URL is automatically used.
@@ -205,6 +205,10 @@ export interface PageShotConfig {
      */
     userAgent?: string;
 }
+/**
+ * Alias for SiteSnapConfig for backwards compatibility.
+ */
+export type PageShotConfig = SiteSnapConfig;
 /**
  * Result details for a single screenshot capture.
  */

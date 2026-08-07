@@ -1,4 +1,4 @@
-// Main library entry point for page-shot
+// Main library entry point for sitesnap
 export { defineConfig } from "./config/define.js";
 export { loadConfig, loadConfigFile, resolveConfigFile } from "./config/loader.js";
 export { validateConfig, validatePageConfig, validateViewport } from "./config/validate.js";

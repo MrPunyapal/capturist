@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext } from "playwright-core";
-import type { PageShotConfig, Viewport, ColorScheme } from "../types/index.js";
+import type { SiteSnapConfig, Viewport, ColorScheme } from "../types/index.js";
 /**
  * Resolves the Playwright browser module dynamically (playwright or playwright-core).
  */
@@ -7,9 +7,9 @@ export declare function getPlaywrightBrowser(browserType?: "chromium" | "firefox
 /**
  * Launches a browser instance with production-grade flags for deterministic rendering.
  */
-export declare function launchBrowser(config: PageShotConfig): Promise<Browser>;
+export declare function launchBrowser(config: SiteSnapConfig): Promise<Browser>;
 /**
  * Creates an isolated browser context configured with viewport, scale factor, and color schemes.
  */
-export declare function createBrowserContext(browser: Browser, viewport: Viewport, colorScheme: ColorScheme | undefined, config: PageShotConfig): Promise<BrowserContext>;
+export declare function createBrowserContext(browser: Browser, viewport: Viewport, colorScheme: ColorScheme | undefined, config: SiteSnapConfig): Promise<BrowserContext>;
 //# sourceMappingURL=browser.d.ts.map

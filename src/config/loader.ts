@@ -2,10 +2,16 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import * as fsSync from "node:fs";
 import { pathToFileURL } from "node:url";
-import type { PageShotConfig } from "../types/index.js";
+import type { SiteSnapConfig } from "../types/index.js";
 import { validateConfig } from "./validate.js";
 
 export const CONFIG_CANDIDATES = [
+  "sitesnap.config.ts",
+  "sitesnap.config.js",
+  "sitesnap.config.mjs",
+  "sitesnap.config.cjs",
+  "sitesnap.config.json",
+  // Legacy / migration fallback
   "page-shot.config.ts",
   "page-shot.config.js",
   "page-shot.config.mjs",
@@ -38,7 +44,7 @@ export function resolveConfigFile(cwd: string, customPath?: string): string | nu
 /**
  * Loads and executes a TypeScript or JavaScript config file.
  */
-export async function loadConfigFile(configPath: string): Promise<PageShotConfig> {
+export async function loadConfigFile(configPath: string): Promise<SiteSnapConfig> {
   const ext = path.extname(configPath).toLowerCase();
 
   let rawConfig: any;
@@ -58,13 +64,14 @@ export async function loadConfigFile(configPath: string): Promise<PageShotConfig
       // Remove type imports and simple TS type annotations if running in standard Node
       const stripped = code
         .replace(/import\s+type\s+.*?from\s+['"].*?['"];?/g, "")
+        .replace(/:\s*SiteSnapConfig/g, "")
         .replace(/:\s*PageShotConfig/g, "")
         .replace(/:\s*PageConfig\[\]/g, "")
         .replace(/:\s*Viewport/g, "");
 
       const tmpFile = path.resolve(
         path.dirname(configPath),
-        `.page-shot.tmp.${Date.now()}.mjs`
+        `.sitesnap.tmp.${Date.now()}.mjs`
       );
       try {
         await fs.writeFile(tmpFile, stripped, "utf-8");
@@ -95,11 +102,11 @@ export async function loadConfigFile(configPath: string): Promise<PageShotConfig
 export async function loadConfig(
   cwd: string = process.cwd(),
   customPath?: string
-): Promise<{ config: PageShotConfig; configPath: string }> {
+): Promise<{ config: SiteSnapConfig; configPath: string }> {
   const resolvedPath = resolveConfigFile(cwd, customPath);
   if (!resolvedPath) {
     throw new Error(
-      `No page-shot configuration file found in "${cwd}". Create a "page-shot.config.ts" or "page-shot.config.js" or use "page-shot init".`
+      `No sitesnap configuration file found in "${cwd}". Create a "sitesnap.config.ts" or "sitesnap.config.js" or use "sitesnap init".`
     );
   }
 

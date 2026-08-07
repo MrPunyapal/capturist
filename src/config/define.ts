@@ -1,11 +1,11 @@
-import type { PageShotConfig } from "../types/index.js";
+import type { SiteSnapConfig } from "../types/index.js";
 
 /**
- * Type-safe configuration helper function for `page-shot.config.ts` or `page-shot.config.js`.
+ * Type-safe configuration helper function for `sitesnap.config.ts` or `sitesnap.config.js`.
  *
  * @example
  * ```ts
- * import { defineConfig } from "page-shot";
+ * import { defineConfig } from "sitesnap";
  *
  * export default defineConfig({
  *   viewport: { width: 1200, height: 630 },
@@ -17,7 +17,7 @@ import type { PageShotConfig } from "../types/index.js";
  * ```
  */
 export function defineConfig(
-  config: PageShotConfig | (() => PageShotConfig | Promise<PageShotConfig>)
-): PageShotConfig | (() => PageShotConfig | Promise<PageShotConfig>) {
+  config: SiteSnapConfig | (() => SiteSnapConfig | Promise<SiteSnapConfig>)
+): SiteSnapConfig | (() => SiteSnapConfig | Promise<SiteSnapConfig>) {
   return config;
 }
