@@ -11,12 +11,6 @@ export const CONFIG_CANDIDATES = [
   "sitesnap.config.mjs",
   "sitesnap.config.cjs",
   "sitesnap.config.json",
-  // Legacy / migration fallback
-  "page-shot.config.ts",
-  "page-shot.config.js",
-  "page-shot.config.mjs",
-  "page-shot.config.cjs",
-  "page-shot.config.json",
 ];
 
 /**
@@ -65,7 +59,6 @@ export async function loadConfigFile(configPath: string): Promise<SiteSnapConfig
       const stripped = code
         .replace(/import\s+type\s+.*?from\s+['"].*?['"];?/g, "")
         .replace(/:\s*SiteSnapConfig/g, "")
-        .replace(/:\s*PageShotConfig/g, "")
         .replace(/:\s*PageConfig\[\]/g, "")
         .replace(/:\s*Viewport/g, "");
 
