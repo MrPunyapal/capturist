@@ -11,12 +11,12 @@ export async function getPlaywrightBrowser(browserType = "chromium") {
             playwright = await import("playwright-core");
         }
         catch {
-            throw new Error('Neither "playwright" nor "playwright-core" was found. Please install playwright:\n\n  npm install -D playwright\n  npx playwright install chromium\n');
+            throw new Error('Playwright is not installed. Please install it with:\n\n  npm install -D playwright\n  npx playwright install chromium\n');
         }
     }
     const engine = playwright[browserType] || playwright.chromium;
     if (!engine) {
-        throw new Error(`Unsupported browser engine: "${browserType}". Must be chromium, firefox, or webkit.`);
+        throw new Error(`Browser engine "${browserType}" is not supported by Playwright.`);
     }
     return engine;
 }
@@ -59,7 +59,6 @@ export async function createBrowserContext(browser, viewport, colorScheme = "lig
         },
         deviceScaleFactor: viewport.deviceScaleFactor || 1,
         colorScheme: colorScheme === "no-preference" ? "no-preference" : colorScheme,
-        reducedMotion: "reduce",
         extraHTTPHeaders: config.headers,
         userAgent: config.userAgent,
         locale: "en-US",

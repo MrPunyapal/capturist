@@ -11,7 +11,7 @@ describe("Built-in Static Server", () => {
   let server: RunningServer;
 
   before(async () => {
-    tmpDir = path.join(os.tmpdir(), `snapsite-test-${Date.now()}`);
+    tmpDir = path.join(os.tmpdir(), `capturist-test-${Date.now()}`);
     await fs.mkdir(tmpDir, { recursive: true });
     await fs.writeFile(
       path.join(tmpDir, "index.html"),

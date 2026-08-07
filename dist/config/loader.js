@@ -4,11 +4,11 @@ import * as fsSync from "node:fs";
 import { pathToFileURL } from "node:url";
 import { validateConfig } from "./validate.js";
 export const CONFIG_CANDIDATES = [
-    "snapsite.config.ts",
-    "snapsite.config.js",
-    "snapsite.config.mjs",
-    "snapsite.config.cjs",
-    "snapsite.config.json",
+    "capturist.config.ts",
+    "capturist.config.js",
+    "capturist.config.mjs",
+    "capturist.config.cjs",
+    "capturist.config.json",
 ];
 /**
  * Finds the config file in the target directory or checks the specified custom path.
@@ -52,10 +52,10 @@ export async function loadConfigFile(configPath) {
             // Remove type imports and simple TS type annotations if running in standard Node
             const stripped = code
                 .replace(/import\s+type\s+.*?from\s+['"].*?['"];?/g, "")
-                .replace(/:\s*SnapSiteConfig/g, "")
+                .replace(/:\s*CapturistConfig/g, "")
                 .replace(/:\s*PageConfig\[\]/g, "")
                 .replace(/:\s*Viewport/g, "");
-            const tmpFile = path.resolve(path.dirname(configPath), `.snapsite.tmp.${Date.now()}.mjs`);
+            const tmpFile = path.resolve(path.dirname(configPath), `.capturist.tmp.${Date.now()}.mjs`);
             try {
                 await fs.writeFile(tmpFile, stripped, "utf-8");
                 const imported = await import(`${pathToFileURL(tmpFile).href}`);
@@ -84,7 +84,7 @@ export async function loadConfigFile(configPath) {
 export async function loadConfig(cwd = process.cwd(), customPath) {
     const resolvedPath = resolveConfigFile(cwd, customPath);
     if (!resolvedPath) {
-        throw new Error(`No snapsite configuration file found in "${cwd}". Create a "snapsite.config.ts" or "snapsite.config.js" or use "snapsite init".`);
+        throw new Error(`No capturist configuration file found in "${cwd}". Create a "capturist.config.ts" or "capturist.config.js" or use "capturist init".`);
     }
     const config = await loadConfigFile(resolvedPath);
     return { config, configPath: resolvedPath };

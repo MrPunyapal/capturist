@@ -1,5 +1,5 @@
 {
-  "name": "snapsite",
+  "name": "capturist",
   "version": "0.1.0",
   "description": "Production-grade, configuration-driven static screenshot generator for websites and Open Graph images.",
   "keywords": [
@@ -11,24 +11,24 @@
     "preview-generator",
     "web-page-screenshot",
     "social-preview",
-    "snapsite"
+    "capturist"
   ],
   "author": "Punyapal Shah <mrpunyapal@gmail.com> (https://mrpunyapal.dev)",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrPunyapal/snapsite.git"
+    "url": "git+https://github.com/MrPunyapal/capturist.git"
   },
   "bugs": {
-    "url": "https://github.com/MrPunyapal/snapsite/issues"
+    "url": "https://github.com/MrPunyapal/capturist/issues"
   },
-  "homepage": "https://github.com/MrPunyapal/snapsite#readme",
+  "homepage": "https://github.com/MrPunyapal/capturist#readme",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/MrPunyapal"
   },
   "bin": {
-    "snapsite": "./bin/snapsite.js"
+    "capturist": "./bin/capturist.js"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

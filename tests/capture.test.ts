@@ -11,8 +11,8 @@ describe("End-to-End Screenshot Capture Engine", () => {
   let tmpOutputDir: string;
 
   before(async () => {
-    tmpSiteDir = path.join(os.tmpdir(), `snapsite-site-${Date.now()}`);
-    tmpOutputDir = path.join(os.tmpdir(), `snapsite-out-${Date.now()}`);
+    tmpSiteDir = path.join(os.tmpdir(), `capturist-site-${Date.now()}`);
+    tmpOutputDir = path.join(os.tmpdir(), `capturist-out-${Date.now()}`);
 
     await fs.mkdir(tmpSiteDir, { recursive: true });
     await fs.mkdir(tmpOutputDir, { recursive: true });
@@ -77,7 +77,7 @@ describe("End-to-End Screenshot Capture Engine", () => {
         },
         {
           route: "/projects",
-          output: "og/projects.png",
+          output: "projects.png",
         },
         {
           route: "/",
@@ -95,7 +95,7 @@ describe("End-to-End Screenshot Capture Engine", () => {
 
     // Verify output files exist and are not empty
     const masterPath = path.join(tmpOutputDir, "master-og-image.png");
-    const projectsPath = path.join(tmpOutputDir, "og", "projects.png");
+    const projectsPath = path.join(tmpOutputDir, "projects.png");
     const badgePath = path.join(tmpOutputDir, "hero-badge.png");
 
     const masterStat = await fs.stat(masterPath);

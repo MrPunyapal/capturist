@@ -1,20 +1,20 @@
-# 📸 snapsite
+# 📸 capturist
 
 > **The canonical, configuration-driven screenshot engine for websites and Open Graph images.**  
 > Turn your actual web pages into pixel-perfect static screenshots, social preview cards, and visual assets automatically.
 
-[![npm version](https://img.shields.io/npm/v/snapsite.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/snapsite)
+[![npm version](https://img.shields.io/npm/v/capturist.svg?color=blue&style=flat-square)](https://www.npmjs.com/package/capturist)
 [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 [![Playwright](https://img.shields.io/badge/powered%20by-Playwright-2EAD33.svg?style=flat-square&logo=playwright)](https://playwright.dev/)
 [![TypeScript](https://img.shields.io/badge/written%20in-TypeScript-3178C6.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 
 ---
 
-## 💡 Why snapsite?
+## 💡 Why capturist?
 
 Many websites generate Open Graph images using Canva, Figma, Photoshop, or canvas-based SVG generators. These quickly become stale: when you change your website layout, design, or copy, the social share images lag behind.
 
-**`snapsite` flips this workflow: your website itself becomes the social preview.**
+**`capturist` flips this workflow: your website itself becomes the social preview.**
 
 ```
 /           ──►  public/master-og-image.png
@@ -24,7 +24,7 @@ Many websites generate Open Graph images using Canva, Figma, Photoshop, or canva
 /resume     ──►  public/og/resume.png
 ```
 
-Whenever your website changes, running `snapsite` automatically updates every preview image deterministically.
+Whenever your website changes, running `capturist` automatically updates every preview image deterministically.
 
 ---
 
@@ -44,7 +44,7 @@ Whenever your website changes, running `snapsite` automatically updates every pr
 ## 📦 Installation
 
 ```bash
-npm install -D snapsite playwright
+npm install -D capturist playwright
 ```
 
 *Note: You can also install only the Chromium browser engine:*
@@ -59,13 +59,13 @@ npx playwright install chromium
 ### 1. Initialize configuration
 
 ```bash
-npx snapsite init
+npx capturist init
 ```
 
-This creates `snapsite.config.ts` (or `.js`):
+This creates `capturist.config.ts` (or `.js`):
 
 ```ts
-import { defineConfig } from "snapsite";
+import { defineConfig } from "capturist";
 
 export default defineConfig({
   baseUrl: "http://localhost:3000",
@@ -99,7 +99,7 @@ In your `package.json`:
 {
   "scripts": {
     "build": "vite build",
-    "generate:og": "snapsite"
+    "generate:og": "capturist"
   }
 }
 ```
@@ -112,9 +112,9 @@ npm run generate:og
 
 Output:
 ```text
-📸 snapsite v0.1.0 — Deterministic static screenshot engine
+📸 capturist v0.1.0 — Deterministic static screenshot engine
 
-ℹ Loaded config: snapsite.config.ts
+ℹ Loaded config: capturist.config.ts
   ✓ / → master-og-image.png (1200x630) 142.5 KB 340ms
   ✓ /projects → og/projects.png (1200x630) 168.2 KB 285ms
   ✓ /talks → og/talks.png (1200x630) 129.4 KB 260ms
@@ -126,7 +126,7 @@ Done! Generated 3/3 screenshots in 0.88s → public
 
 ## 🛠 Configuration Reference
 
-### Global Options (`SnapSiteConfig`)
+### Global Options (`CapturistConfig`)
 
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
@@ -168,7 +168,7 @@ Done! Generated 3/3 screenshots in 0.88s → public
 ## 🖥 CLI Usage
 
 ```bash
-snapsite [command] [options]
+capturist [command] [options]
 ```
 
 ### Options
@@ -190,10 +190,10 @@ snapsite [command] [options]
 
 ### 1. Capturing a Built Static Site Zero-Config
 
-No need to start a dev server manually: `snapsite` includes a built-in static server that serves `./dist` directly and can execute your build script!
+No need to start a dev server manually: `capturist` includes a built-in static server that serves `./dist` directly and can execute your build script!
 
 ```ts
-import { defineConfig } from "snapsite";
+import { defineConfig } from "capturist";
 
 export default defineConfig({
   server: {
@@ -214,7 +214,7 @@ export default defineConfig({
 For crisp Retina previews across Twitter, LinkedIn, and Facebook:
 
 ```ts
-import { defineConfig } from "snapsite";
+import { defineConfig } from "capturist";
 
 export default defineConfig({
   viewport: {
@@ -231,7 +231,7 @@ export default defineConfig({
 ### 3. Light and Dark Mode Previews
 
 ```ts
-import { defineConfig } from "snapsite";
+import { defineConfig } from "capturist";
 
 export default defineConfig({
   baseUrl: "http://localhost:3000",
@@ -247,7 +247,7 @@ export default defineConfig({
 Capture only a specific widget, hero card, or diagram:
 
 ```ts
-import { defineConfig } from "snapsite";
+import { defineConfig } from "capturist";
 
 export default defineConfig({
   baseUrl: "http://localhost:3000",
@@ -267,7 +267,7 @@ export default defineConfig({
 Interact with your UI (e.g. close modals, click tabs, accept cookies) before capturing:
 
 ```ts
-import { defineConfig } from "snapsite";
+import { defineConfig } from "capturist";
 
 export default defineConfig({
   baseUrl: "http://localhost:3000",
@@ -289,10 +289,10 @@ export default defineConfig({
 
 ## 💻 Programmatic API
 
-You can use `snapsite` directly from your Node.js or TypeScript build scripts:
+You can use `capturist` directly from your Node.js or TypeScript build scripts:
 
 ```ts
-import { generateScreenshots, defineConfig } from "snapsite";
+import { generateScreenshots, defineConfig } from "capturist";
 
 const config = defineConfig({
   baseUrl: "https://mrpunyapal.dev",
@@ -337,7 +337,7 @@ jobs:
       - name: Build site & generate screenshots
         run: |
           npm run build
-          npx snapsite
+          npx capturist
 ```
 
 ---

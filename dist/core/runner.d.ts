@@ -1,8 +1,8 @@
-import type { SnapSiteConfig, ScreenshotResult, RunSummary } from "../types/index.js";
+import type { CapturistConfig, ScreenshotResult, RunSummary } from "../types/index.js";
 /**
  * Primary programmatic orchestrator: generates all screenshots according to configuration.
  */
-export declare function generateScreenshots(config: SnapSiteConfig, options?: {
+export declare function generateScreenshots(config: CapturistConfig, options?: {
     cwd?: string;
     onProgress?: (result: ScreenshotResult) => void;
 }): Promise<RunSummary>;

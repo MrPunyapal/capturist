@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import type { Browser } from "playwright-core";
 import type {
-  SnapSiteConfig,
+  CapturistConfig,
   PageConfig,
   ScreenshotResult,
   RunSummary,
@@ -43,7 +43,7 @@ async function asyncPool<T, R>(
  * Primary programmatic orchestrator: generates all screenshots according to configuration.
  */
 export async function generateScreenshots(
-  config: SnapSiteConfig,
+  config: CapturistConfig,
   options: { cwd?: string; onProgress?: (result: ScreenshotResult) => void } = {}
 ): Promise<RunSummary> {
   const cwd = options.cwd || process.cwd();
@@ -69,7 +69,7 @@ export async function generateScreenshots(
     );
   }
 
-  const effectiveConfig: SnapSiteConfig = {
+  const effectiveConfig: CapturistConfig = {
     ...config,
     baseUrl: activeBaseUrl,
   };

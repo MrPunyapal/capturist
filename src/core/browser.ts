@@ -1,5 +1,5 @@
 import type { Browser, BrowserContext, LaunchOptions } from "playwright-core";
-import type { SnapSiteConfig, Viewport, ColorScheme } from "../types/index.js";
+import type { CapturistConfig, Viewport, ColorScheme } from "../types/index.js";
 
 /**
  * Resolves the Playwright browser module dynamically (playwright or playwright-core).
@@ -13,14 +13,14 @@ export async function getPlaywrightBrowser(browserType: "chromium" | "firefox" |
       playwright = await import("playwright-core");
     } catch {
       throw new Error(
-        'Neither "playwright" nor "playwright-core" was found. Please install playwright:\n\n  npm install -D playwright\n  npx playwright install chromium\n'
+        'Playwright is not installed. Please install it with:\n\n  npm install -D playwright\n  npx playwright install chromium\n'
       );
     }
   }
 
   const engine = playwright[browserType] || playwright.chromium;
   if (!engine) {
-    throw new Error(`Unsupported browser engine: "${browserType}". Must be chromium, firefox, or webkit.`);
+    throw new Error(`Browser engine "${browserType}" is not supported by Playwright.`);
   }
 
   return engine;
@@ -29,7 +29,7 @@ export async function getPlaywrightBrowser(browserType: "chromium" | "firefox" |
 /**
  * Launches a browser instance with production-grade flags for deterministic rendering.
  */
-export async function launchBrowser(config: SnapSiteConfig): Promise<Browser> {
+export async function launchBrowser(config: CapturistConfig): Promise<Browser> {
   const browserName = config.browser || "chromium";
   const engine = await getPlaywrightBrowser(browserName);
 
@@ -66,7 +66,7 @@ export async function createBrowserContext(
   browser: Browser,
   viewport: Viewport,
   colorScheme: ColorScheme = "light",
-  config: SnapSiteConfig
+  config: CapturistConfig
 ): Promise<BrowserContext> {
   return await browser.newContext({
     viewport: {
@@ -75,7 +75,6 @@ export async function createBrowserContext(
     },
     deviceScaleFactor: viewport.deviceScaleFactor || 1,
     colorScheme: colorScheme === "no-preference" ? "no-preference" : colorScheme,
-    reducedMotion: "reduce",
     extraHTTPHeaders: config.headers,
     userAgent: config.userAgent,
     locale: "en-US",

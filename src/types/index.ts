@@ -55,8 +55,8 @@ export interface ScreenshotHookContext {
   outputPath: string;
   /** Resolved configuration for this specific page. */
   pageConfig: PageConfig;
-  /** The full global SnapSiteConfig. */
-  config: SnapSiteConfig;
+  /** The full global CapturistConfig. */
+  config: CapturistConfig;
 }
 
 /**
@@ -155,9 +155,9 @@ export interface PageConfig {
 }
 
 /**
- * Root configuration for snapsite.
+ * Root configuration for capturist.
  */
-export interface SnapSiteConfig {
+export interface CapturistConfig {
   /**
    * Base URL prepended to all relative routes (e.g. "http://localhost:3000", "https://example.com").
    * If not specified and `server` is configured, the local server URL is automatically used.

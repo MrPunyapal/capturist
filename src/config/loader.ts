@@ -2,15 +2,15 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import * as fsSync from "node:fs";
 import { pathToFileURL } from "node:url";
-import type { SnapSiteConfig } from "../types/index.js";
+import type { CapturistConfig } from "../types/index.js";
 import { validateConfig } from "./validate.js";
 
 export const CONFIG_CANDIDATES = [
-  "snapsite.config.ts",
-  "snapsite.config.js",
-  "snapsite.config.mjs",
-  "snapsite.config.cjs",
-  "snapsite.config.json",
+  "capturist.config.ts",
+  "capturist.config.js",
+  "capturist.config.mjs",
+  "capturist.config.cjs",
+  "capturist.config.json",
 ];
 
 /**
@@ -38,7 +38,7 @@ export function resolveConfigFile(cwd: string, customPath?: string): string | nu
 /**
  * Loads and executes a TypeScript or JavaScript config file.
  */
-export async function loadConfigFile(configPath: string): Promise<SnapSiteConfig> {
+export async function loadConfigFile(configPath: string): Promise<CapturistConfig> {
   const ext = path.extname(configPath).toLowerCase();
 
   let rawConfig: any;
@@ -58,13 +58,13 @@ export async function loadConfigFile(configPath: string): Promise<SnapSiteConfig
       // Remove type imports and simple TS type annotations if running in standard Node
       const stripped = code
         .replace(/import\s+type\s+.*?from\s+['"].*?['"];?/g, "")
-        .replace(/:\s*SnapSiteConfig/g, "")
+        .replace(/:\s*CapturistConfig/g, "")
         .replace(/:\s*PageConfig\[\]/g, "")
         .replace(/:\s*Viewport/g, "");
 
       const tmpFile = path.resolve(
         path.dirname(configPath),
-        `.snapsite.tmp.${Date.now()}.mjs`
+        `.capturist.tmp.${Date.now()}.mjs`
       );
       try {
         await fs.writeFile(tmpFile, stripped, "utf-8");
@@ -95,11 +95,11 @@ export async function loadConfigFile(configPath: string): Promise<SnapSiteConfig
 export async function loadConfig(
   cwd: string = process.cwd(),
   customPath?: string
-): Promise<{ config: SnapSiteConfig; configPath: string }> {
+): Promise<{ config: CapturistConfig; configPath: string }> {
   const resolvedPath = resolveConfigFile(cwd, customPath);
   if (!resolvedPath) {
     throw new Error(
-      `No snapsite configuration file found in "${cwd}". Create a "snapsite.config.ts" or "snapsite.config.js" or use "snapsite init".`
+      `No capturist configuration file found in "${cwd}". Create a "capturist.config.ts" or "capturist.config.js" or use "capturist init".`
     );
   }
 

@@ -5,7 +5,7 @@ import { loadConfig } from "../config/loader.js";
 import { generateScreenshots } from "../core/runner.js";
 import { logger } from "../utils/logger.js";
 const VERSION = "0.1.0";
-const STARTER_CONFIG = `import { defineConfig } from "snapsite";
+const STARTER_CONFIG = `import { defineConfig } from "capturist";
 
 export default defineConfig({
   // Base URL of your website or local dev server
@@ -40,7 +40,7 @@ export default defineConfig({
 export async function runCli(argv = process.argv.slice(2)) {
     const options = parseCliArgs(argv);
     if (options.version) {
-        console.log(`snapsite v${VERSION}`);
+        console.log(`capturist v${VERSION}`);
         return;
     }
     if (options.help) {
@@ -53,7 +53,7 @@ export async function runCli(argv = process.argv.slice(2)) {
     // Handle "init" command
     if (options.init) {
         logger.banner(VERSION);
-        const targetFile = path.resolve(process.cwd(), "snapsite.config.js");
+        const targetFile = path.resolve(process.cwd(), "capturist.config.js");
         try {
             await fs.access(targetFile);
             logger.warn(`Configuration file already exists: ${targetFile}`);
@@ -61,7 +61,7 @@ export async function runCli(argv = process.argv.slice(2)) {
         catch {
             await fs.writeFile(targetFile, STARTER_CONFIG, "utf-8");
             logger.success(`Created configuration starter at: ${targetFile}`);
-            logger.info(`Run "snapsite" to generate your first screenshots.`);
+            logger.info(`Run "capturist" to generate your first screenshots.`);
         }
         return;
     }

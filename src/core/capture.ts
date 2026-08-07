@@ -3,32 +3,27 @@ import * as path from "node:path";
 import type { BrowserContext, Page } from "playwright-core";
 import type {
   PageConfig,
-  SnapSiteConfig,
+  CapturistConfig,
   ScreenshotResult,
 } from "../types/index.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
 
 /**
- * CSS injected to freeze and disable all animations, transitions, and blinking carets.
+ * CSS injected into pages to enforce pixel-perfect determinism.
  */
-const DISABLE_ANIMATIONS_CSS = `
+const DETERMINISTIC_CSS = `
 *, *::before, *::after {
-  -webkit-animation-delay: 0s !important;
-  -moz-animation-delay: 0s !important;
-  animation-delay: 0s !important;
-  -webkit-animation-duration: 0s !important;
-  -moz-animation-duration: 0s !important;
-  animation-duration: 0s !important;
-  -webkit-transition-duration: 0s !important;
-  -moz-transition-duration: 0s !important;
-  transition-duration: 0s !important;
-  -webkit-transition-delay: 0s !important;
-  -moz-transition-delay: 0s !important;
-  transition-delay: 0s !important;
+  -webkit-transition: none !important;
+  -moz-transition: none !important;
+  -o-transition: none !important;
+  -ms-transition: none !important;
+  transition: none !important;
+  -webkit-animation: none !important;
+  -moz-animation: none !important;
+  -o-animation: none !important;
+  -ms-animation: none !important;
+  animation: none !important;
   caret-color: transparent !important;
-}
-::-webkit-scrollbar {
-  display: none !important;
 }
 `;
 
@@ -38,7 +33,7 @@ const DISABLE_ANIMATIONS_CSS = `
 export async function capturePageScreenshot(
   context: BrowserContext,
   pageConfig: PageConfig,
-  globalConfig: SnapSiteConfig,
+  globalConfig: CapturistConfig,
   targetFilePath: string
 ): Promise<ScreenshotResult> {
   const startTime = Date.now();
@@ -52,51 +47,49 @@ export async function capturePageScreenshot(
     page.setDefaultTimeout(timeout);
     page.setDefaultNavigationTimeout(timeout);
 
-    // Navigate to target URL, waiting for network idle
-    try {
-      await page.goto(targetUrl, {
-        waitUntil: "networkidle",
-        timeout,
-      });
-    } catch {
-      // If networkidle times out (e.g. persistent WebSocket or polling), fall back to load
-      await page.goto(targetUrl, {
-        waitUntil: "load",
-        timeout: Math.min(10000, timeout),
-      });
-    }
+    // 1. Navigate to target URL
+    await page.goto(targetUrl, {
+      waitUntil: "networkidle",
+      timeout,
+    });
 
-    // Wait for web fonts to load
+    // 2. Wait for fonts to finish rendering
     await page.evaluate(async () => {
-      if ("fonts" in document && document.fonts && typeof document.fonts.ready !== "undefined") {
-        await (document.fonts as any).ready;
+      if ("fonts" in document) {
+        await (document as any).fonts.ready;
       }
     });
 
-    // Disable animations & transitions for deterministic rendering
+    // 3. Inject deterministic CSS if enabled
     if (pageConfig.disableAnimations !== false) {
-      await page.addStyleTag({ content: DISABLE_ANIMATIONS_CSS });
+      await page.addStyleTag({ content: DETERMINISTIC_CSS });
     }
 
-    // Handle custom waitFor selector or timeout
+    // 4. Custom waitFor selector or delay
     if (pageConfig.waitFor) {
       if (typeof pageConfig.waitFor === "number") {
         await page.waitForTimeout(pageConfig.waitFor);
       } else if (typeof pageConfig.waitFor === "string") {
-        await page.waitForSelector(pageConfig.waitFor, {
-          state: "visible",
-          timeout,
-        });
+        await page.waitForSelector(pageConfig.waitFor, { state: "visible" });
       }
     }
 
-    // Additional delay if configured
+    // 5. Page delay if configured
     if (pageConfig.delay && pageConfig.delay > 0) {
       await page.waitForTimeout(pageConfig.delay);
     }
 
-    // Execute global beforeScreenshot hook if present
-    if (typeof globalConfig.beforeScreenshot === "function") {
+    // 6. Execute beforeScreenshot lifecycle hook if present
+    if (pageConfig.beforeScreenshot) {
+      await pageConfig.beforeScreenshot({
+        page,
+        context,
+        route,
+        outputPath: targetFilePath,
+        pageConfig,
+        config: globalConfig,
+      });
+    } else if (globalConfig.beforeScreenshot) {
       await globalConfig.beforeScreenshot({
         page,
         context,
@@ -107,64 +100,65 @@ export async function capturePageScreenshot(
       });
     }
 
-    // Execute page-level beforeScreenshot hook if present
-    if (typeof pageConfig.beforeScreenshot === "function") {
-      await pageConfig.beforeScreenshot({
-        page,
-        context,
-        route,
-        outputPath: targetFilePath,
-        pageConfig,
-        config: globalConfig,
-      });
-    }
-
-    // Ensure parent directory exists
+    // Ensure parent directory exists before writing
     await ensureFileDirectory(targetFilePath);
 
-    const screenshotOptions: any = {
-      path: targetFilePath,
-      type: pageConfig.type || "png",
-      omitBackground: pageConfig.omitBackground || false,
-    };
+    // 7. Take screenshot (element selector, fullPage, or viewport)
+    let buffer: Buffer;
+    let width = pageConfig.viewport?.width || 1200;
+    let height = pageConfig.viewport?.height || 630;
 
-    if (pageConfig.type === "jpeg" && typeof pageConfig.quality === "number") {
-      screenshotOptions.quality = pageConfig.quality;
-    }
-
-    let capturedWidth = pageConfig.viewport?.width || globalConfig.viewport?.width || 1200;
-    let capturedHeight = pageConfig.viewport?.height || globalConfig.viewport?.height || 630;
+    const screenshotType = pageConfig.type || "png";
+    const quality = screenshotType === "png" ? undefined : pageConfig.quality;
 
     if (pageConfig.selector) {
       const element = await page.$(pageConfig.selector);
       if (!element) {
         throw new Error(
-          `Element with selector "${pageConfig.selector}" not found on page "${route}".`
+          `Target selector "${pageConfig.selector}" not found on page "${route}".`
         );
       }
+
       const box = await element.boundingBox();
       if (box) {
-        capturedWidth = Math.round(box.width);
-        capturedHeight = Math.round(box.height);
+        width = Math.round(box.width);
+        height = Math.round(box.height);
       }
-      await element.screenshot(screenshotOptions);
+
+      buffer = (await element.screenshot({
+        type: screenshotType,
+        quality,
+        omitBackground: pageConfig.omitBackground,
+      })) as Buffer;
     } else {
+      buffer = (await page.screenshot({
+        type: screenshotType,
+        quality,
+        fullPage: pageConfig.fullPage,
+        omitBackground: pageConfig.omitBackground,
+      })) as Buffer;
+
       if (pageConfig.fullPage) {
-        screenshotOptions.fullPage = true;
+        const dimensions = await page.evaluate(() => ({
+          width: document.documentElement.scrollWidth,
+          height: document.documentElement.scrollHeight,
+        }));
+        width = dimensions.width;
+        height = dimensions.height;
       }
-      await page.screenshot(screenshotOptions);
     }
 
+    // 8. Write binary output to disk
+    await fs.writeFile(targetFilePath, buffer);
     const durationMs = Date.now() - startTime;
-    const stat = await fs.stat(targetFilePath);
 
     return {
       route,
-      outputPath: pageConfig.output,
+      outputPath: path.basename(targetFilePath),
       absolutePath: targetFilePath,
-      sizeBytes: stat.size,
-      width: capturedWidth,
-      height: capturedHeight,
+      sizeBytes: buffer.length,
+      width,
+      height,
       durationMs,
       success: true,
     };
@@ -172,14 +166,14 @@ export async function capturePageScreenshot(
     const durationMs = Date.now() - startTime;
     return {
       route,
-      outputPath: pageConfig.output,
+      outputPath: path.basename(targetFilePath),
       absolutePath: targetFilePath,
       sizeBytes: 0,
-      width: 0,
-      height: 0,
+      width: pageConfig.viewport?.width || 1200,
+      height: pageConfig.viewport?.height || 630,
       durationMs,
       success: false,
-      error: err instanceof Error ? err : new Error(String(err)),
+      error: err,
     };
   } finally {
     await page.close().catch(() => {});

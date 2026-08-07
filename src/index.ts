@@ -1,4 +1,4 @@
-// Main library entry point for snapsite
+// Main library entry point for capturist
 
 export { defineConfig } from "./config/define.js";
 export { loadConfig, loadConfigFile, resolveConfigFile } from "./config/loader.js";
@@ -14,7 +14,7 @@ export { joinUrl, formatBytes, resolveOutputPath, ensureDirectory } from "./util
 
 // Type exports
 export type {
-  SnapSiteConfig,
+  CapturistConfig,
   PageConfig,
   Viewport,
   ColorScheme,

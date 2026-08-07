@@ -9,5 +9,5 @@ export { runCli } from "./cli/index.js";
 export { parseCliArgs, printHelp } from "./cli/args.js";
 export { logger, Logger } from "./utils/logger.js";
 export { joinUrl, formatBytes, resolveOutputPath, ensureDirectory } from "./utils/paths.js";
-export type { SnapSiteConfig, PageConfig, Viewport, ColorScheme, BrowserName, ScreenshotFormat, StaticServerConfig, ScreenshotHookContext, BeforeScreenshotHook, ScreenshotResult, RunSummary, CliOptions, } from "./types/index.js";
+export type { CapturistConfig, PageConfig, Viewport, ColorScheme, BrowserName, ScreenshotFormat, StaticServerConfig, ScreenshotHookContext, BeforeScreenshotHook, ScreenshotResult, RunSummary, CliOptions, } from "./types/index.js";
 //# sourceMappingURL=index.d.ts.map
