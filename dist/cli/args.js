@@ -61,16 +61,16 @@ export function parseCliArgs(args) {
 }
 export function printHelp() {
     console.log(`
-\x1b[1m\x1b[36m📸 snapsite\x1b[0m — Production-grade static screenshot and Open Graph generator
+\x1b[1m\x1b[36m📸 capturist\x1b[0m — Production-grade static screenshot and Open Graph generator
 
 \x1b[1mUSAGE\x1b[0m
-  $ \x1b[36msnapsite\x1b[0m [command] [options]
+  $ \x1b[36mcapturist\x1b[0m [command] [options]
 
 \x1b[1mCOMMANDS\x1b[0m
-  \x1b[32minit\x1b[0m                  Scaffold a starter snapsite.config.js in current directory
+  \x1b[32minit\x1b[0m                  Scaffold a starter capturist.config.js in current directory
 
 \x1b[1mOPTIONS\x1b[0m
-  \x1b[33m-c, --config\x1b[0m <path>    Path to config file (default: snapsite.config.ts|.js)
+  \x1b[33m-c, --config\x1b[0m <path>    Path to config file (default: capturist.config.ts|.js)
   \x1b[33m-u, --baseUrl\x1b[0m <url>    Base URL override (e.g. http://localhost:3000)
   \x1b[33m-o, --outputDir\x1b[0m <dir>  Output directory override (default: public)
   \x1b[33m--concurrency\x1b[0m <n>      Number of parallel browser pages (default: 4)
@@ -82,10 +82,10 @@ export function printHelp() {
   \x1b[33m-h, --help\x1b[0m             Display this help message
 
 \x1b[1mEXAMPLES\x1b[0m
-  $ \x1b[36msnapsite\x1b[0m
-  $ \x1b[36msnapsite\x1b[0m --baseUrl http://localhost:5173
-  $ \x1b[36msnapsite\x1b[0m --config ./configs/og.config.ts
-  $ \x1b[36msnapsite init\x1b[0m
+  $ \x1b[36mcapturist\x1b[0m
+  $ \x1b[36mcapturist\x1b[0m --baseUrl http://localhost:5173
+  $ \x1b[36mcapturist\x1b[0m --config ./configs/og.config.ts
+  $ \x1b[36mcapturist init\x1b[0m
 `);
 }
 //# sourceMappingURL=args.js.map
