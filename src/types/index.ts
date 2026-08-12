@@ -189,6 +189,53 @@ export interface PageConfig {
    * Custom metadata attached to this page capture.
    */
   metadata?: Record<string, unknown>;
+
+  /**
+   * When global `cache` is enabled, set `false` to always recapture this page.
+   */
+  cache?: boolean;
+
+  /**
+   * Extra file paths (relative to cwd or absolute) hashed into the cache fingerprint.
+   * Useful when a route's visual output depends on shared CSS/partials not inlined in the HTML.
+   */
+  inputs?: string[];
+
+  /**
+   * Explicit cache fingerprint source. When set, used instead of auto-detected HTML content.
+   * Ideal for integrators that already know when a card is dirty.
+   */
+  cacheKey?: string;
+}
+
+/**
+ * Incremental capture cache settings.
+ *
+ * When enabled, capturist fingerprints each page (HTML content + capture settings)
+ * and skips Playwright for outputs whose fingerprint is unchanged.
+ */
+export interface CacheConfig {
+  /**
+   * Enable or disable caching. Default true when a cache object is provided.
+   */
+  enabled?: boolean;
+
+  /**
+   * Manifest path relative to cwd (or absolute).
+   * Default: `{outputDir}/.capturist-cache.json`
+   */
+  path?: string;
+
+  /**
+   * When a PNG exists but has no manifest entry, record the current fingerprint
+   * and skip capture (avoids a full recapture on first enable). Default true.
+   */
+  adopt?: boolean;
+
+  /**
+   * Delete output files for pages removed from `pages`. Default false.
+   */
+  prune?: boolean;
 }
 
 /**
@@ -292,6 +339,17 @@ export interface CapturistConfig {
    * Custom User-Agent string to emulate.
    */
   userAgent?: string;
+
+  /**
+   * Incremental capture cache.
+   *
+   * - `true` — enable with defaults (`{outputDir}/.capturist-cache.json`)
+   * - `false` / omit — always capture every page
+   * - object — fine-tune path, adopt, prune
+   *
+   * CLI: `--cache` enables, `--no-cache` / `--force` disables for one run.
+   */
+  cache?: boolean | CacheConfig;
 }
 
 /**
@@ -316,6 +374,8 @@ export interface ScreenshotResult {
   success: boolean;
   /** Error instance if capture failed. */
   error?: Error;
+  /** True when the existing file was reused (cache hit). */
+  cached?: boolean;
 }
 
 /**
@@ -324,12 +384,16 @@ export interface ScreenshotResult {
 export interface RunSummary {
   /** Individual screenshot results. */
   results: ScreenshotResult[];
-  /** Total number of pages processed. */
+  /** Total number of pages processed (captured + cached). */
   total: number;
-  /** Number of successful captures. */
+  /** Number of successful captures (includes cache hits). */
   succeeded: number;
   /** Number of failed captures. */
   failed: number;
+  /** Pages skipped because the cache fingerprint matched. */
+  cached: number;
+  /** Pages actually captured with Playwright. */
+  captured: number;
   /** Total execution time in milliseconds. */
   totalDurationMs: number;
   /** Resolved output directory. */
@@ -362,6 +426,12 @@ export interface CliOptions {
   verbose?: boolean;
   /** Dry run mode (validates config without launching browser). */
   dryRun?: boolean;
+  /** Enable incremental cache for this run (even if config omits cache). */
+  cache?: boolean;
+  /** Disable cache / recapture every page (alias of force). */
+  noCache?: boolean;
+  /** Force recapture of every page, ignoring cache. */
+  force?: boolean;
   /** Show version. */
   version?: boolean;
   /** Show help. */

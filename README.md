@@ -146,6 +146,45 @@ Done! Generated 3/3 screenshots in 0.88s → public/og
 | `defaultWaitFor` | `string` | `undefined` | Selector to wait for across all pages. |
 | `timeout` | `number` | `30000` | Navigation timeout in ms. |
 | `beforeScreenshot` | `Function` | `undefined` | Global hook executed before each screenshot. |
+| `cache` | `boolean \| CacheConfig` | `false` | Incremental capture: skip unchanged pages (see below). |
+
+### Incremental cache
+
+When `cache` is enabled, capturist fingerprints each page and **skips Playwright** for outputs whose fingerprint still matches. Ideal for large OG suites (dozens of tips/pages).
+
+```js
+export default defineConfig({
+  cache: true, // writes public/.capturist-cache.json
+  // or: cache: { path: "public/og/.capturist-cache.json", adopt: true, prune: false }
+  server: { dir: "./dist", buildCommand: "npm run build" },
+  pages: [/* ... */],
+});
+```
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `enabled` | `boolean` | `true` | Toggle when using a cache object. |
+| `path` | `string` | `{outputDir}/.capturist-cache.json` | Manifest location. |
+| `adopt` | `boolean` | `true` | First enable reuses existing PNGs without recapturing. |
+| `prune` | `boolean` | `false` | Delete output files for pages removed from config. |
+
+**What is fingerprinted**
+
+- `html` / `htmlFile` content
+- For `route`: static file under `server.dir` (`/` → `index.html`, `/tips/x` → `tips/x.html`)
+- Capture settings (viewport, retina/scale, selector, format, …)
+- Optional per-page `inputs` files and `cacheKey` override
+
+**CLI**
+
+```bash
+capturist              # uses config.cache
+capturist --cache      # enable for this run
+capturist --force      # recapture everything
+capturist --no-cache   # same as --force
+```
+
+Build (`server.buildCommand`) runs **before** fingerprinting so route hashes see fresh HTML. The browser starts only if at least one page is dirty.
 
 ### Page Options (`PageConfig`)
 
@@ -158,6 +197,9 @@ Provide **one of** `route`/`url`, `html`, or `htmlFile`.
 | `htmlFile` | `string` | — | Path to an HTML file to capture (no server needed). |
 | `label` | `string` | auto | Name used in logs / JSON results. |
 | `output` | `string` | **Required** | Output filename or path (e.g. `"pricing.png"`, `"og/card.png"`). |
+| `cache` | `boolean` | `true` when global cache on | Set `false` to always recapture this page. |
+| `inputs` | `string[]` | — | Extra files hashed into the fingerprint. |
+| `cacheKey` | `string` | — | Explicit fingerprint source (overrides auto HTML). |
 | `outputDir` | `string` | `global.outputDir` | Per-page output directory override. |
 | `retina` | `boolean` | `global.retina` | Per-page 2x Retina resolution toggle. |
 | `scale` | `number` | `global.scale` | Per-page device pixel ratio override. |

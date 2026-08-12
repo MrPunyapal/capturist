@@ -81,7 +81,12 @@ export class Logger {
         if (this.quiet)
             return;
         const totalTimeSec = (summary.totalDurationMs / 1000).toFixed(2);
-        console.log(`\n${colors.bold}${colors.green}Done!${colors.reset} Generated ${colors.bold}${summary.succeeded}/${summary.total}${colors.reset} screenshots in ${colors.cyan}${totalTimeSec}s${colors.reset} → ${colors.dim}${summary.outputDir}${colors.reset}\n`);
+        const cached = summary.cached ?? 0;
+        const captured = summary.captured ?? summary.total;
+        const cacheNote = cached > 0
+            ? ` ${colors.dim}(${captured} captured, ${cached} cached)${colors.reset}`
+            : "";
+        console.log(`\n${colors.bold}${colors.green}Done!${colors.reset} Generated ${colors.bold}${summary.succeeded}/${summary.total}${colors.reset} screenshots in ${colors.cyan}${totalTimeSec}s${colors.reset}${cacheNote} → ${colors.dim}${summary.outputDir}${colors.reset}\n`);
     }
 }
 export const logger = new Logger();

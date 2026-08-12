@@ -5,6 +5,7 @@ import { startStaticServer } from "../server/static-server.js";
 import { isHtmlPage, validateConfig } from "../config/validate.js";
 import { resolveOutputPath, ensureDirectory } from "../utils/paths.js";
 import { logger } from "../utils/logger.js";
+import { resolveCacheConfig, partitionCachedPages, writeCacheManifest, buildNextManifestEntries, pruneStaleCacheEntries, readCacheManifest, makeCachedResult, } from "./cache.js";
 /**
  * Concurrency worker pool executor.
  */
@@ -31,29 +32,104 @@ export function needsNetworkNavigation(pages) {
 }
 /**
  * Primary programmatic orchestrator: generates all screenshots according to configuration.
+ *
+ * When `cache` is enabled (config or options), unchanged pages are skipped.
  */
 export async function generateScreenshots(config, options = {}) {
     const cwd = options.cwd || process.cwd();
     const startTime = Date.now();
     const quiet = options.quiet === true;
+    const baseOutputDir = path.resolve(cwd, config.outputDir || "public");
+    await ensureDirectory(baseOutputDir);
+    // Run buildCommand before fingerprinting so route → dist HTML is current.
+    const requiresNetwork = needsNetworkNavigation(config.pages);
+    if (requiresNetwork && config.server?.buildCommand) {
+        const { execSync } = await import("node:child_process");
+        if (!quiet)
+            logger.info(`Running build command: ${config.server.buildCommand}`);
+        execSync(config.server.buildCommand, { stdio: quiet ? "ignore" : "inherit", cwd });
+    }
+    const cache = resolveCacheConfig(config, cwd, {
+        force: options.force,
+        cache: options.cache,
+    });
+    let pagesToCapture = config.pages;
+    let partition = null;
+    const cachedResults = [];
+    if (cache.enabled) {
+        partition = partitionCachedPages(config, cwd, cache, baseOutputDir);
+        if (partition.adopted.length > 0 && !quiet) {
+            logger.info(`Adopted ${partition.adopted.length} existing image(s) into cache (no recapture)`);
+        }
+        const pureHits = partition.cached.filter((d) => !d.adopted).length;
+        if (pureHits > 0 && !quiet) {
+            // Avoid spamming hundreds of lines; detail only in verbose mode.
+            if (logger.verbose) {
+                for (const decision of partition.cached) {
+                    if (decision.adopted)
+                        continue;
+                    const result = makeCachedResult(decision.page, decision.outputAbsolute, baseOutputDir);
+                    logger.info(`cache hit  ${result.route} → ${result.outputPath}`);
+                }
+            }
+            else {
+                logger.info(`${pureHits} page(s) unchanged (cache hit)`);
+            }
+        }
+        for (const decision of partition.cached) {
+            const result = makeCachedResult(decision.page, decision.outputAbsolute, baseOutputDir);
+            cachedResults.push(result);
+            if (options.onProgress) {
+                options.onProgress(result);
+            }
+        }
+        pagesToCapture = partition.dirty.map((d) => d.page);
+        if (pagesToCapture.length === 0) {
+            const prune = typeof config.cache === "object" && config.cache !== null
+                ? config.cache.prune === true
+                : false;
+            if (prune && partition) {
+                const removed = pruneStaleCacheEntries(readCacheManifest(cache.path), new Set(partition.all.map((d) => d.key)), cwd, baseOutputDir, true);
+                if (removed.length > 0 && !quiet) {
+                    logger.info(`Pruned ${removed.length} stale output(s)`);
+                }
+            }
+            writeCacheManifest(cache.path, buildNextManifestEntries(partition, new Set()));
+            const summary = {
+                results: cachedResults,
+                total: cachedResults.length,
+                succeeded: cachedResults.length,
+                failed: 0,
+                cached: cachedResults.length,
+                captured: 0,
+                totalDurationMs: Date.now() - startTime,
+                outputDir: baseOutputDir,
+            };
+            if (!quiet) {
+                logger.success(`Open Graph / screenshots up to date (${summary.cached} cached, 0 captured)`);
+                logger.summary(summary);
+            }
+            return summary;
+        }
+        if (!quiet) {
+            logger.info(`Capturing ${pagesToCapture.length}/${config.pages.length} page(s)` +
+                (partition.cached.length > 0 ? ` (${partition.cached.length} cached)` : ""));
+        }
+    }
     let server = null;
     let activeBaseUrl = config.baseUrl;
-    const requiresNetwork = needsNetworkNavigation(config.pages);
-    // If static server is specified and no baseUrl is given, start the server
-    // (only when at least one page navigates by route/url)
-    if (requiresNetwork && config.server && !activeBaseUrl) {
-        if (config.server.buildCommand) {
-            const { execSync } = await import("node:child_process");
-            if (!quiet)
-                logger.info(`Running build command: ${config.server.buildCommand}`);
-            execSync(config.server.buildCommand, { stdio: quiet ? "ignore" : "inherit", cwd });
-        }
-        server = await startStaticServer(config.server, cwd);
+    const captureRequiresNetwork = needsNetworkNavigation(pagesToCapture);
+    // Start server only for dirty route pages; build already ran above.
+    if (captureRequiresNetwork && config.server && !activeBaseUrl) {
+        server = await startStaticServer({
+            ...config.server,
+            buildCommand: undefined,
+        }, cwd);
         activeBaseUrl = server.url;
     }
-    if (requiresNetwork &&
+    if (captureRequiresNetwork &&
         !activeBaseUrl &&
-        config.pages.some((p) => {
+        pagesToCapture.some((p) => {
             if (isHtmlPage(p))
                 return false;
             const route = p.route || p.url || "";
@@ -65,11 +141,10 @@ export async function generateScreenshots(config, options = {}) {
     const effectiveConfig = {
         ...config,
         baseUrl: activeBaseUrl,
+        pages: pagesToCapture,
     };
-    const baseOutputDir = path.resolve(cwd, effectiveConfig.outputDir || "public");
-    await ensureDirectory(baseOutputDir);
     let browser = null;
-    const results = [];
+    const captureResults = [];
     try {
         browser = await launchBrowser(effectiveConfig);
         const concurrency = effectiveConfig.concurrency || 4;
@@ -94,8 +169,8 @@ export async function generateScreenshots(config, options = {}) {
                 await context.close().catch(() => { });
             }
         };
-        const taskResults = await asyncPool(concurrency, effectiveConfig.pages, captureTask);
-        results.push(...taskResults);
+        const taskResults = await asyncPool(concurrency, pagesToCapture, captureTask);
+        captureResults.push(...taskResults);
     }
     finally {
         if (browser) {
@@ -105,15 +180,43 @@ export async function generateScreenshots(config, options = {}) {
             await server.close().catch(() => { });
         }
     }
-    const totalDurationMs = Date.now() - startTime;
+    if (cache.enabled && partition) {
+        const successfulKeys = new Set();
+        for (const result of captureResults) {
+            if (!result.success)
+                continue;
+            const abs = path.normalize(result.absolutePath);
+            const decision = partition.dirty.find((d) => path.normalize(d.outputAbsolute) === abs ||
+                d.key === result.outputPath.replace(/\\/g, "/") ||
+                d.page.output.replace(/\\/g, "/") === result.outputPath.replace(/\\/g, "/"));
+            if (decision) {
+                successfulKeys.add(decision.key);
+            }
+        }
+        const prune = typeof config.cache === "object" && config.cache !== null
+            ? config.cache.prune === true
+            : false;
+        if (prune) {
+            const removed = pruneStaleCacheEntries(readCacheManifest(cache.path), new Set(partition.all.map((d) => d.key)), cwd, baseOutputDir, true);
+            if (removed.length > 0 && !quiet) {
+                logger.info(`Pruned ${removed.length} stale output(s)`);
+            }
+        }
+        writeCacheManifest(cache.path, buildNextManifestEntries(partition, successfulKeys));
+    }
+    const results = [...cachedResults, ...captureResults];
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
+    const cachedCount = results.filter((r) => r.cached).length;
+    const capturedCount = results.filter((r) => !r.cached).length;
     const summary = {
         results,
         total: results.length,
         succeeded,
         failed,
-        totalDurationMs,
+        cached: cachedCount,
+        captured: capturedCount,
+        totalDurationMs: Date.now() - startTime,
         outputDir: baseOutputDir,
     };
     if (!quiet)
@@ -151,12 +254,12 @@ export async function captureHtml(html, options) {
         outputDir: path.dirname(options.output) || ".",
         browser: options.browser || "chromium",
         concurrency: 1,
+        // One-shot helper always captures; callers that want cache use generateScreenshots.
+        cache: false,
         pages: [
             {
                 html,
                 output: path.basename(options.output),
-                // If output is nested, use outputDir as full parent and basename as file —
-                // when output has directories, resolve via absolute path through outputDir + relative
                 viewport: {
                     width,
                     height,
@@ -170,7 +273,6 @@ export async function captureHtml(html, options) {
             },
         ],
     };
-    // Prefer absolute output: set outputDir to dirname of resolved path
     const resolvedOutput = path.isAbsolute(options.output)
         ? options.output
         : path.resolve(cwd, options.output);
@@ -184,7 +286,7 @@ export async function captureHtml(html, options) {
             },
         ],
     });
-    const summary = await generateScreenshots(config, { cwd, quiet: true });
+    const summary = await generateScreenshots(config, { cwd, quiet: true, cache: false });
     const result = summary.results[0];
     if (!result) {
         throw new Error("captureHtml() produced no result.");

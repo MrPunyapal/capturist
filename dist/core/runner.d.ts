@@ -3,14 +3,21 @@ import type { CapturistConfig, PageConfig, ScreenshotResult, RunSummary, Capture
  * True when at least one page needs HTTP navigation (and thus baseUrl/server).
  */
 export declare function needsNetworkNavigation(pages: PageConfig[]): boolean;
-/**
- * Primary programmatic orchestrator: generates all screenshots according to configuration.
- */
-export declare function generateScreenshots(config: CapturistConfig, options?: {
+export interface GenerateScreenshotsOptions {
     cwd?: string;
     onProgress?: (result: ScreenshotResult) => void;
     quiet?: boolean;
-}): Promise<RunSummary>;
+    /** Force recapture every page (ignore cache). */
+    force?: boolean;
+    /** Override config.cache for this run. */
+    cache?: boolean;
+}
+/**
+ * Primary programmatic orchestrator: generates all screenshots according to configuration.
+ *
+ * When `cache` is enabled (config or options), unchanged pages are skipped.
+ */
+export declare function generateScreenshots(config: CapturistConfig, options?: GenerateScreenshotsOptions): Promise<RunSummary>;
 /**
  * One-shot helper for integrators (SSGs, scripts, other tools):
  * capture a single HTML string to an image file without writing a config file.

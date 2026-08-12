@@ -62,6 +62,15 @@ export function parseCliArgs(args) {
         else if (arg === "--dry-run") {
             options.dryRun = true;
         }
+        else if (arg === "--cache") {
+            options.cache = true;
+        }
+        else if (arg === "--no-cache") {
+            options.noCache = true;
+        }
+        else if (arg === "--force" || arg === "-f") {
+            options.force = true;
+        }
         else if (arg === "--version" || arg === "-v") {
             options.version = true;
         }
@@ -92,6 +101,9 @@ export function printHelp() {
   \x1b[33m-q, --quiet\x1b[0m            Suppress human logs (errors still print)
   \x1b[33m--json\x1b[0m                 Print machine-readable JSON summary on stdout
   \x1b[33m--dry-run\x1b[0m              Validate configuration without launching browser
+  \x1b[33m--cache\x1b[0m                Enable incremental cache for this run
+  \x1b[33m--no-cache\x1b[0m             Disable cache (recapture everything)
+  \x1b[33m-f, --force\x1b[0m            Force recapture (same as --no-cache)
   \x1b[33m--verbose\x1b[0m              Enable detailed debug logs
   \x1b[33m-v, --version\x1b[0m          Show version number
   \x1b[33m-h, --help\x1b[0m             Display this help message
@@ -101,11 +113,17 @@ export function printHelp() {
   $ \x1b[36mcapturist\x1b[0m --baseUrl http://localhost:5173
   $ \x1b[36mcapturist\x1b[0m --config ./configs/og.config.ts
   $ \x1b[36mcapturist\x1b[0m --cwd ./docs --config capturist.config.json --json --quiet
+  $ \x1b[36mcapturist\x1b[0m --force
   $ \x1b[36mcapturist init\x1b[0m
 
 \x1b[1mHTML / OG CARDS\x1b[0m
   Pages may use \x1b[33mhtml\x1b[0m or \x1b[33mhtmlFile\x1b[0m instead of \x1b[33mroute\x1b[0m — no baseUrl or server required.
   Ideal for static site generators that emit HTML card templates.
+
+\x1b[1mCACHE\x1b[0m
+  Set \x1b[33mcache: true\x1b[0m in config (or pass \x1b[33m--cache\x1b[0m) to skip unchanged pages.
+  Fingerprints HTML (\x1b[33mhtml\x1b[0m / \x1b[33mhtmlFile\x1b[0m / static file for \x1b[33mroute\x1b[0m) + capture settings.
+  Manifest default: \x1b[33m{outputDir}/.capturist-cache.json\x1b[0m
 `);
 }
 //# sourceMappingURL=args.js.map

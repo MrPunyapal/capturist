@@ -5,7 +5,7 @@ import { loadConfig } from "../config/loader.js";
 import { generateScreenshots } from "../core/runner.js";
 import { resolvePageLabel } from "../config/validate.js";
 import { logger } from "../utils/logger.js";
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 const STARTER_CONFIG = `import { defineConfig } from "capturist";
 
 export default defineConfig({
@@ -46,6 +46,8 @@ function printJsonSummary(summary) {
         total: summary.total,
         succeeded: summary.succeeded,
         failed: summary.failed,
+        cached: summary.cached ?? 0,
+        captured: summary.captured ?? summary.total,
         totalDurationMs: summary.totalDurationMs,
         outputDir: summary.outputDir,
         results: summary.results.map((r) => ({
@@ -57,6 +59,7 @@ function printJsonSummary(summary) {
             height: r.height,
             durationMs: r.durationMs,
             success: r.success,
+            cached: Boolean(r.cached),
             error: r.error ? r.error.message : undefined,
         })),
     };
@@ -147,6 +150,8 @@ export async function runCli(argv = process.argv.slice(2)) {
         const summary = await generateScreenshots(config, {
             cwd,
             quiet: quiet && !options.verbose,
+            force: Boolean(options.force || options.noCache),
+            cache: options.cache === true ? true : options.noCache || options.force ? false : undefined,
         });
         if (options.json) {
             printJsonSummary(summary);

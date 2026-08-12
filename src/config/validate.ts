@@ -152,6 +152,10 @@ export function validatePageConfig(
 
   const resolvedRoute = route || (htmlFile ? `file:${htmlFile}` : `html:${output}`);
 
+  const inputs = Array.isArray(p.inputs)
+    ? (p.inputs as unknown[]).filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : undefined;
+
   return {
     route: resolvedRoute,
     url: route || undefined,
@@ -177,6 +181,9 @@ export function validatePageConfig(
     quality: typeof p.quality === "number" ? Math.min(100, Math.max(0, p.quality)) : undefined,
     beforeScreenshot: typeof p.beforeScreenshot === "function" ? (p.beforeScreenshot as any) : undefined,
     metadata: typeof p.metadata === "object" && p.metadata !== null ? (p.metadata as Record<string, unknown>) : undefined,
+    cache: typeof p.cache === "boolean" ? p.cache : undefined,
+    inputs,
+    cacheKey: typeof p.cacheKey === "string" && p.cacheKey.length > 0 ? p.cacheKey : undefined,
   };
 }
 
@@ -265,6 +272,19 @@ export function validateConfig(config: unknown): CapturistConfig {
 
   const timeout = typeof raw.timeout === "number" && raw.timeout > 0 ? raw.timeout : DEFAULT_TIMEOUT;
 
+  let cache: CapturistConfig["cache"];
+  if (raw.cache === true || raw.cache === false) {
+    cache = raw.cache;
+  } else if (raw.cache && typeof raw.cache === "object") {
+    const c = raw.cache as Record<string, unknown>;
+    cache = {
+      enabled: c.enabled !== false,
+      path: typeof c.path === "string" ? c.path : undefined,
+      adopt: c.adopt !== false,
+      prune: c.prune === true,
+    };
+  }
+
   const normalizedConfig: CapturistConfig = {
     baseUrl: typeof raw.baseUrl === "string" ? raw.baseUrl.trim() : undefined,
     outputDir,
@@ -283,6 +303,7 @@ export function validateConfig(config: unknown): CapturistConfig {
     beforeScreenshot: typeof raw.beforeScreenshot === "function" ? (raw.beforeScreenshot as any) : undefined,
     headers: typeof raw.headers === "object" && raw.headers !== null ? (raw.headers as Record<string, string>) : undefined,
     userAgent: typeof raw.userAgent === "string" ? raw.userAgent : undefined,
+    cache,
     pages: [],
   };
 

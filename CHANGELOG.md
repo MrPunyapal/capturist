@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] - 2026-08-12
+
+### ✨ Added — Incremental cache
+- **`cache: true | CacheConfig`** — skip Playwright for pages whose fingerprint is unchanged.
+  - Fingerprints `html` / `htmlFile` content, static files for `route` (via `server.dir`), capture settings, and optional `inputs` / `cacheKey`.
+  - Manifest default: `{outputDir}/.capturist-cache.json`
+  - **`adopt`** (default true): first enable reuses existing PNGs without a full recapture.
+  - **`prune`**: optionally delete outputs for pages removed from config.
+- **Per-page controls**: `cache: false`, `inputs: string[]`, `cacheKey: string`.
+- **CLI**: `--cache`, `--no-cache`, `-f` / `--force`.
+- **Run summary**: `cached` / `captured` counts; JSON results include `cached: true` on hits.
+- Build command runs **before** fingerprinting so route-based sites see fresh `dist/` HTML; browser/server start only for dirty pages.
+
+### 📝 Docs
+- Documented cache configuration and force-regenerate workflow.
+
+---
+
 ## [0.1.2] - 2026-08-12
 
 ### ✨ Added — HTML cards & tooling integration

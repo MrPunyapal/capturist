@@ -107,6 +107,9 @@ export function validatePageConfig(page, index, globalConfig) {
         throw new Error(`Invalid type "${format}" in page[${index}]. Must be "png", "jpeg", or "webp".`);
     }
     const resolvedRoute = route || (htmlFile ? `file:${htmlFile}` : `html:${output}`);
+    const inputs = Array.isArray(p.inputs)
+        ? p.inputs.filter((x) => typeof x === "string" && x.trim().length > 0)
+        : undefined;
     return {
         route: resolvedRoute,
         url: route || undefined,
@@ -131,6 +134,9 @@ export function validatePageConfig(page, index, globalConfig) {
         quality: typeof p.quality === "number" ? Math.min(100, Math.max(0, p.quality)) : undefined,
         beforeScreenshot: typeof p.beforeScreenshot === "function" ? p.beforeScreenshot : undefined,
         metadata: typeof p.metadata === "object" && p.metadata !== null ? p.metadata : undefined,
+        cache: typeof p.cache === "boolean" ? p.cache : undefined,
+        inputs,
+        cacheKey: typeof p.cacheKey === "string" && p.cacheKey.length > 0 ? p.cacheKey : undefined,
     };
 }
 /**
@@ -193,6 +199,19 @@ export function validateConfig(config) {
         ? Math.floor(raw.concurrency)
         : Math.min(4, Math.max(1, defaultCpuCount));
     const timeout = typeof raw.timeout === "number" && raw.timeout > 0 ? raw.timeout : DEFAULT_TIMEOUT;
+    let cache;
+    if (raw.cache === true || raw.cache === false) {
+        cache = raw.cache;
+    }
+    else if (raw.cache && typeof raw.cache === "object") {
+        const c = raw.cache;
+        cache = {
+            enabled: c.enabled !== false,
+            path: typeof c.path === "string" ? c.path : undefined,
+            adopt: c.adopt !== false,
+            prune: c.prune === true,
+        };
+    }
     const normalizedConfig = {
         baseUrl: typeof raw.baseUrl === "string" ? raw.baseUrl.trim() : undefined,
         outputDir,
@@ -211,6 +230,7 @@ export function validateConfig(config) {
         beforeScreenshot: typeof raw.beforeScreenshot === "function" ? raw.beforeScreenshot : undefined,
         headers: typeof raw.headers === "object" && raw.headers !== null ? raw.headers : undefined,
         userAgent: typeof raw.userAgent === "string" ? raw.userAgent : undefined,
+        cache,
         pages: [],
     };
     normalizedConfig.pages = raw.pages.map((p, idx) => validatePageConfig(p, idx, normalizedConfig));
