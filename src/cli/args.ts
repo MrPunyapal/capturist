@@ -35,6 +35,14 @@ export function parseCliArgs(args: string[]): CliOptions {
       options.serverPort = parseInt(args[++i], 10);
     } else if (arg.startsWith("--serverPort=")) {
       options.serverPort = parseInt(arg.split("=")[1], 10);
+    } else if (arg === "--cwd") {
+      options.cwd = args[++i];
+    } else if (arg.startsWith("--cwd=")) {
+      options.cwd = arg.split("=")[1];
+    } else if (arg === "--quiet" || arg === "-q") {
+      options.quiet = true;
+    } else if (arg === "--json") {
+      options.json = true;
     } else if (arg === "--verbose") {
       options.verbose = true;
     } else if (arg === "--dry-run") {
@@ -60,12 +68,15 @@ export function printHelp(): void {
   \x1b[32minit\x1b[0m                  Scaffold a starter capturist.config.js in current directory
 
 \x1b[1mOPTIONS\x1b[0m
-  \x1b[33m-c, --config\x1b[0m <path>    Path to config file (default: capturist.config.ts|.js)
+  \x1b[33m-c, --config\x1b[0m <path>    Path to config file (default: capturist.config.ts|.js|.json)
   \x1b[33m-u, --baseUrl\x1b[0m <url>    Base URL override (e.g. http://localhost:3000)
   \x1b[33m-o, --outputDir\x1b[0m <dir>  Output directory override (default: public)
   \x1b[33m--concurrency\x1b[0m <n>      Number of parallel browser pages (default: 4)
   \x1b[33m--serverDir\x1b[0m <dir>      Directory for built-in static server (e.g. ./dist)
   \x1b[33m--serverPort\x1b[0m <port>    Port for built-in static server
+  \x1b[33m--cwd\x1b[0m <dir>            Working directory for config and relative paths
+  \x1b[33m-q, --quiet\x1b[0m            Suppress human logs (errors still print)
+  \x1b[33m--json\x1b[0m                 Print machine-readable JSON summary on stdout
   \x1b[33m--dry-run\x1b[0m              Validate configuration without launching browser
   \x1b[33m--verbose\x1b[0m              Enable detailed debug logs
   \x1b[33m-v, --version\x1b[0m          Show version number
@@ -75,6 +86,11 @@ export function printHelp(): void {
   $ \x1b[36mcapturist\x1b[0m
   $ \x1b[36mcapturist\x1b[0m --baseUrl http://localhost:5173
   $ \x1b[36mcapturist\x1b[0m --config ./configs/og.config.ts
+  $ \x1b[36mcapturist\x1b[0m --cwd ./docs --config capturist.config.json --json --quiet
   $ \x1b[36mcapturist init\x1b[0m
+
+\x1b[1mHTML / OG CARDS\x1b[0m
+  Pages may use \x1b[33mhtml\x1b[0m or \x1b[33mhtmlFile\x1b[0m instead of \x1b[33mroute\x1b[0m — no baseUrl or server required.
+  Ideal for static site generators that emit HTML card templates.
 `);
 }

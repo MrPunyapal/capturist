@@ -6,6 +6,7 @@ import type {
   CapturistConfig,
   ScreenshotResult,
 } from "../types/index.js";
+import { isHtmlPage, resolvePageLabel } from "../config/validate.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
 
 /**
@@ -38,17 +39,70 @@ img, svg {
 `;
 
 /**
+ * Loads page content either by URL navigation or by injecting HTML (inline / file).
+ */
+async function loadPageContent(
+  page: Page,
+  pageConfig: PageConfig,
+  globalConfig: CapturistConfig,
+  cwd: string,
+  timeout: number
+): Promise<string> {
+  if (isHtmlPage(pageConfig)) {
+    let html = pageConfig.html ?? "";
+
+    if (pageConfig.htmlFile) {
+      const filePath = path.isAbsolute(pageConfig.htmlFile)
+        ? pageConfig.htmlFile
+        : path.resolve(cwd, pageConfig.htmlFile);
+      try {
+        html = await fs.readFile(filePath, "utf-8");
+      } catch (err: any) {
+        throw new Error(
+          `Failed to read htmlFile "${pageConfig.htmlFile}": ${err?.message || err}`
+        );
+      }
+    }
+
+    if (!html.trim()) {
+      throw new Error(
+        `Page "${resolvePageLabel(pageConfig)}" has empty HTML content.`
+      );
+    }
+
+    // setContent does not fire a full navigation lifecycle; "load" is enough for inline docs.
+    await page.setContent(html, {
+      waitUntil: "load",
+      timeout,
+    });
+
+    return resolvePageLabel(pageConfig);
+  }
+
+  const route = pageConfig.route || pageConfig.url || "/";
+  const targetUrl = joinUrl(globalConfig.baseUrl || "", route);
+
+  await page.goto(targetUrl, {
+    waitUntil: "networkidle",
+    timeout,
+  });
+
+  return route;
+}
+
+/**
  * Captures a single page screenshot deterministically.
  */
 export async function capturePageScreenshot(
   context: BrowserContext,
   pageConfig: PageConfig,
   globalConfig: CapturistConfig,
-  targetFilePath: string
+  targetFilePath: string,
+  options: { cwd?: string } = {}
 ): Promise<ScreenshotResult> {
   const startTime = Date.now();
-  const route = pageConfig.route || pageConfig.url || "/";
-  const targetUrl = joinUrl(globalConfig.baseUrl || "", route);
+  const cwd = options.cwd || process.cwd();
+  const label = resolvePageLabel(pageConfig);
 
   const page: Page = await context.newPage();
 
@@ -57,11 +111,8 @@ export async function capturePageScreenshot(
     page.setDefaultTimeout(timeout);
     page.setDefaultNavigationTimeout(timeout);
 
-    // 1. Navigate to target URL
-    await page.goto(targetUrl, {
-      waitUntil: "networkidle",
-      timeout,
-    });
+    // 1. Navigate or inject HTML
+    const route = await loadPageContent(page, pageConfig, globalConfig, cwd, timeout);
 
     // 2. Wait for fonts to finish rendering
     await page.evaluate(async () => {
@@ -125,7 +176,7 @@ export async function capturePageScreenshot(
       const element = await page.$(pageConfig.selector);
       if (!element) {
         throw new Error(
-          `Target selector "${pageConfig.selector}" not found on page "${route}".`
+          `Target selector "${pageConfig.selector}" not found on page "${label}".`
         );
       }
 
@@ -163,7 +214,7 @@ export async function capturePageScreenshot(
     const durationMs = Date.now() - startTime;
 
     return {
-      route,
+      route: label,
       outputPath: path.basename(targetFilePath),
       absolutePath: targetFilePath,
       sizeBytes: buffer.length,
@@ -175,7 +226,7 @@ export async function capturePageScreenshot(
   } catch (err: any) {
     const durationMs = Date.now() - startTime;
     return {
-      route,
+      route: label,
       outputPath: path.basename(targetFilePath),
       absolutePath: targetFilePath,
       sizeBytes: 0,

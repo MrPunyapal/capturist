@@ -21,26 +21,33 @@ const colors = {
 
 export class Logger {
   public verbose: boolean = false;
+  /** When true, suppress info/success/capture/summary (errors still print). */
+  public quiet: boolean = false;
 
   constructor(verbose = false) {
     this.verbose = verbose;
   }
 
   banner(version = "0.1.0"): void {
+    if (this.quiet) return;
     console.log(
       `\n${colors.bold}${colors.cyan}📸 capturist${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`
     );
   }
 
   info(msg: string): void {
+    if (this.quiet) return;
     console.log(`${colors.cyan}ℹ${colors.reset} ${msg}`);
   }
 
   success(msg: string): void {
+    if (this.quiet) return;
     console.log(`${colors.green}✔${colors.reset} ${msg}`);
   }
 
   warn(msg: string): void {
+    // warnings always show unless quiet — still useful for integrators
+    if (this.quiet) return;
     console.log(`${colors.yellow}▲${colors.reset} ${msg}`);
   }
 
@@ -58,6 +65,8 @@ export class Logger {
   }
 
   logCapture(result: ScreenshotResult): void {
+    if (this.quiet) return;
+
     const status = result.success
       ? `${colors.green}✓${colors.reset}`
       : `${colors.red}✗${colors.reset}`;
@@ -81,6 +90,7 @@ export class Logger {
   }
 
   summary(summary: RunSummary): void {
+    if (this.quiet) return;
     const totalTimeSec = (summary.totalDurationMs / 1000).toFixed(2);
     console.log(
       `\n${colors.bold}${colors.green}Done!${colors.reset} Generated ${colors.bold}${summary.succeeded}/${summary.total}${colors.reset} screenshots in ${colors.cyan}${totalTimeSec}s${colors.reset} → ${colors.dim}${summary.outputDir}${colors.reset}\n`

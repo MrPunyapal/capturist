@@ -59,7 +59,36 @@ describe("Config Validation & Normalization", () => {
 
     assert.throws(() => {
       validateConfig({ pages: [{ output: "test.png" }] });
-    }, /missing required "route" or "url"/);
+    }, /provide one of "route"\/"url", "html", or "htmlFile"/);
+  });
+
+  test("accepts html and htmlFile pages without route", () => {
+    const withHtml = validateConfig({
+      pages: [
+        {
+          html: "<!DOCTYPE html><html><body>hi</body></html>",
+          output: "card.png",
+          label: "card",
+        },
+      ],
+    });
+    assert.equal(withHtml.pages[0].html?.includes("hi"), true);
+    assert.equal(withHtml.pages[0].output, "card.png");
+    assert.equal(withHtml.pages[0].label, "card");
+    assert.ok(!withHtml.baseUrl);
+
+    const withFile = validateConfig({
+      pages: [{ htmlFile: "./cards/cover.html", output: "cover.png" }],
+    });
+    assert.equal(withFile.pages[0].htmlFile, "./cards/cover.html");
+  });
+
+  test("rejects mixing route with html", () => {
+    assert.throws(() => {
+      validateConfig({
+        pages: [{ route: "/", html: "<html></html>", output: "x.png" }],
+      });
+    }, /either "route"\/"url" or "html"\/"htmlFile"/);
   });
 
   test("validates custom viewport dimensions", () => {

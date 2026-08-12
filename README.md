@@ -32,6 +32,7 @@ Whenever your website changes, running `capturist` automatically updates every p
 
 - 🎯 **Configuration-driven**: Intuitive, type-safe `defineConfig` API like Vite, Vitest, and ESLint.
 - ⚡ **Playwright Powered**: Handles browser launch, parallel worker pools, and clean teardown internally.
+- 🎴 **HTML → PNG cards**: Capture inline `html` / `htmlFile` without a baseUrl or static server (perfect for OG images and SSGs).
 - 🧊 **Deterministic Screenshots**: Automatically waits for `document.fonts.ready`, freezes CSS animations & transitions, and disables blinking carets.
 - 🔍 **Subpixel Font Antialiasing**: Injects font smoothing rules for razor-sharp typography.
 - 📱 **Retina & HiDPI Presets**: Native `retina: true` and `scale: 2` support for 2400 × 1260 social sharing cards.
@@ -39,7 +40,8 @@ Whenever your website changes, running `capturist` automatically updates every p
 - 🌓 **Color Scheme Emulation**: Render light mode, dark mode, or both.
 - 🔍 **Element & Full Page Capture**: Target specific CSS selectors (`#hero`, `.card`, `#pricing-table`) or capture entire scrollable documents.
 - 🧩 **Zero Playwright Boilerplate**: Users don't need to write custom browser automation scripts.
-- 🚀 **Framework Agnostic**: Works with Vite, Next.js, Astro, SvelteKit, Remix, Nuxt, and static HTML.
+- 🔌 **Integrator-friendly CLI**: `--cwd`, `--quiet`, and `--json` for PHP/CI tools that shell out to capturist.
+- 🚀 **Framework Agnostic**: Works with Vite, Next.js, Astro, SvelteKit, Remix, Nuxt, static HTML, and docs generators.
 
 ---
 
@@ -111,7 +113,7 @@ npm run generate:og
 
 Output:
 ```text
-📸 capturist v0.1.1 — Deterministic static screenshot engine
+📸 capturist v0.1.2 — Deterministic static screenshot engine
 
 ℹ Loaded config: capturist.config.ts
   ✓ / → public/og/home.png (1200x630) 184.5 KB 340ms
@@ -147,9 +149,14 @@ Done! Generated 3/3 screenshots in 0.88s → public/og
 
 ### Page Options (`PageConfig`)
 
+Provide **one of** `route`/`url`, `html`, or `htmlFile`.
+
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `route` / `url` | `string` | **Required** | Route path (e.g. `"/pricing"`) or fully qualified URL. |
+| `route` / `url` | `string` | — | Route path (e.g. `"/pricing"`) or fully qualified URL. |
+| `html` | `string` | — | Inline HTML document (no server / baseUrl needed). Ideal for OG cards. |
+| `htmlFile` | `string` | — | Path to an HTML file to capture (no server needed). |
+| `label` | `string` | auto | Name used in logs / JSON results. |
 | `output` | `string` | **Required** | Output filename or path (e.g. `"pricing.png"`, `"og/card.png"`). |
 | `outputDir` | `string` | `global.outputDir` | Per-page output directory override. |
 | `retina` | `boolean` | `global.retina` | Per-page 2x Retina resolution toggle. |
@@ -176,16 +183,112 @@ capturist [command] [options]
 
 ### Options
 
-- `-c, --config <path>`: Custom path to configuration file.
+- `-c, --config <path>`: Custom path to configuration file (`.ts`, `.js`, `.json`).
 - `-u, --baseUrl <url>`: Override base URL.
 - `-o, --outputDir <dir>`: Override output directory.
 - `--concurrency <n>`: Set parallel worker count.
 - `--serverDir <dir>`: Serve static directory automatically.
 - `--serverPort <port>`: Port for static server.
+- `--cwd <dir>`: Working directory for config and relative paths.
+- `-q, --quiet`: Suppress human logs (errors still print).
+- `--json`: Print a machine-readable JSON summary on stdout.
 - `--dry-run`: Validate configuration without launching browser.
 - `--verbose`: Enable debug logging.
 - `-v, --version`: Print version.
 - `-h, --help`: Show help.
+
+---
+
+## 🎴 HTML → PNG (OG cards / SSG integration)
+
+When you already have HTML (a docs generator, MD frontmatter card, etc.), skip routes and servers:
+
+```ts
+import { defineConfig } from "capturist";
+
+export default defineConfig({
+  outputDir: "docs/og",
+  retina: true,
+  pages: [
+    {
+      label: "cover",
+      html: `<!DOCTYPE html>
+<html><body style="margin:0;width:1200px;height:630px;display:flex;flex-direction:column;justify-content:center;padding:80px;background:#0c141d;color:#e9f1fb;font-family:system-ui,sans-serif">
+  <div style="font-size:28px;color:#a6b8cc">My Docs</div>
+  <h1 style="font-size:64px;margin:24px 0 0;letter-spacing:-0.03em">Getting Started</h1>
+</body></html>`,
+      output: "cover.png",
+    },
+  ],
+});
+```
+
+Or from Node without a config file:
+
+```ts
+import { captureHtml } from "capturist";
+
+await captureHtml(htmlString, {
+  output: "docs/og/cover.png",
+  width: 1200,
+  height: 630,
+  scale: 2,
+});
+```
+
+### JSON config contract (for PHP / other tools)
+
+Static site tools can emit `capturist.config.json` and shell out:
+
+```json
+{
+  "outputDir": "og",
+  "viewport": { "width": 1200, "height": 630 },
+  "pages": [
+    {
+      "label": "cover",
+      "html": "<!DOCTYPE html><html>…card…</html>",
+      "output": "cover.png"
+    },
+    {
+      "label": "installation",
+      "htmlFile": "og/preview/installation.html",
+      "output": "installation.png"
+    }
+  ]
+}
+```
+
+```bash
+npx capturist --cwd ./docs --config capturist.config.json --json --quiet
+```
+
+`--json` stdout shape:
+
+```json
+{
+  "ok": true,
+  "total": 2,
+  "succeeded": 2,
+  "failed": 0,
+  "totalDurationMs": 840,
+  "outputDir": "/abs/path/docs/og",
+  "results": [
+    {
+      "route": "cover",
+      "outputPath": "cover.png",
+      "absolutePath": "/abs/path/docs/og/cover.png",
+      "sizeBytes": 48210,
+      "width": 1200,
+      "height": 630,
+      "durationMs": 320,
+      "success": true
+    }
+  ]
+}
+```
+
+Exit code `0` when all captures succeed; `1` if any fail.
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "capturist",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Configuration-driven static screenshot engine and Open Graph image generator powered by Playwright.",
   "keywords": [
     "screenshot",
@@ -11,6 +11,7 @@
     "preview-generator",
     "web-page-screenshot",
     "social-preview",
+    "html-to-image",
     "capturist"
   ],
   "author": "Punyapal Shah <mrpunyapal@gmail.com> (https://mrpunyapal.dev)",

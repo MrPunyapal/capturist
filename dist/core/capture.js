@@ -1,5 +1,6 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { isHtmlPage, resolvePageLabel } from "../config/validate.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
 /**
  * CSS injected into pages to enforce pixel-perfect determinism and ultra-crisp typography.
@@ -30,22 +31,54 @@ img, svg {
 }
 `;
 /**
- * Captures a single page screenshot deterministically.
+ * Loads page content either by URL navigation or by injecting HTML (inline / file).
  */
-export async function capturePageScreenshot(context, pageConfig, globalConfig, targetFilePath) {
-    const startTime = Date.now();
+async function loadPageContent(page, pageConfig, globalConfig, cwd, timeout) {
+    if (isHtmlPage(pageConfig)) {
+        let html = pageConfig.html ?? "";
+        if (pageConfig.htmlFile) {
+            const filePath = path.isAbsolute(pageConfig.htmlFile)
+                ? pageConfig.htmlFile
+                : path.resolve(cwd, pageConfig.htmlFile);
+            try {
+                html = await fs.readFile(filePath, "utf-8");
+            }
+            catch (err) {
+                throw new Error(`Failed to read htmlFile "${pageConfig.htmlFile}": ${err?.message || err}`);
+            }
+        }
+        if (!html.trim()) {
+            throw new Error(`Page "${resolvePageLabel(pageConfig)}" has empty HTML content.`);
+        }
+        // setContent does not fire a full navigation lifecycle; "load" is enough for inline docs.
+        await page.setContent(html, {
+            waitUntil: "load",
+            timeout,
+        });
+        return resolvePageLabel(pageConfig);
+    }
     const route = pageConfig.route || pageConfig.url || "/";
     const targetUrl = joinUrl(globalConfig.baseUrl || "", route);
+    await page.goto(targetUrl, {
+        waitUntil: "networkidle",
+        timeout,
+    });
+    return route;
+}
+/**
+ * Captures a single page screenshot deterministically.
+ */
+export async function capturePageScreenshot(context, pageConfig, globalConfig, targetFilePath, options = {}) {
+    const startTime = Date.now();
+    const cwd = options.cwd || process.cwd();
+    const label = resolvePageLabel(pageConfig);
     const page = await context.newPage();
     try {
         const timeout = globalConfig.timeout || 30000;
         page.setDefaultTimeout(timeout);
         page.setDefaultNavigationTimeout(timeout);
-        // 1. Navigate to target URL
-        await page.goto(targetUrl, {
-            waitUntil: "networkidle",
-            timeout,
-        });
+        // 1. Navigate or inject HTML
+        const route = await loadPageContent(page, pageConfig, globalConfig, cwd, timeout);
         // 2. Wait for fonts to finish rendering
         await page.evaluate(async () => {
             if ("fonts" in document) {
@@ -101,7 +134,7 @@ export async function capturePageScreenshot(context, pageConfig, globalConfig, t
         if (pageConfig.selector) {
             const element = await page.$(pageConfig.selector);
             if (!element) {
-                throw new Error(`Target selector "${pageConfig.selector}" not found on page "${route}".`);
+                throw new Error(`Target selector "${pageConfig.selector}" not found on page "${label}".`);
             }
             const box = await element.boundingBox();
             if (box) {
@@ -134,7 +167,7 @@ export async function capturePageScreenshot(context, pageConfig, globalConfig, t
         await fs.writeFile(targetFilePath, buffer);
         const durationMs = Date.now() - startTime;
         return {
-            route,
+            route: label,
             outputPath: path.basename(targetFilePath),
             absolutePath: targetFilePath,
             sizeBytes: buffer.length,
@@ -147,7 +180,7 @@ export async function capturePageScreenshot(context, pageConfig, globalConfig, t
     catch (err) {
         const durationMs = Date.now() - startTime;
         return {
-            route,
+            route: label,
             outputPath: path.basename(targetFilePath),
             absolutePath: targetFilePath,
             sizeBytes: 0,

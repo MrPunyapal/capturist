@@ -18,19 +18,30 @@ const colors = {
 };
 export class Logger {
     verbose = false;
+    /** When true, suppress info/success/capture/summary (errors still print). */
+    quiet = false;
     constructor(verbose = false) {
         this.verbose = verbose;
     }
     banner(version = "0.1.0") {
+        if (this.quiet)
+            return;
         console.log(`\n${colors.bold}${colors.cyan}📸 capturist${colors.reset} ${colors.dim}v${version}${colors.reset} — ${colors.gray}Deterministic static screenshot engine${colors.reset}\n`);
     }
     info(msg) {
+        if (this.quiet)
+            return;
         console.log(`${colors.cyan}ℹ${colors.reset} ${msg}`);
     }
     success(msg) {
+        if (this.quiet)
+            return;
         console.log(`${colors.green}✔${colors.reset} ${msg}`);
     }
     warn(msg) {
+        // warnings always show unless quiet — still useful for integrators
+        if (this.quiet)
+            return;
         console.log(`${colors.yellow}▲${colors.reset} ${msg}`);
     }
     error(msg, err) {
@@ -45,6 +56,8 @@ export class Logger {
         }
     }
     logCapture(result) {
+        if (this.quiet)
+            return;
         const status = result.success
             ? `${colors.green}✓${colors.reset}`
             : `${colors.red}✗${colors.reset}`;
@@ -65,6 +78,8 @@ export class Logger {
         }
     }
     summary(summary) {
+        if (this.quiet)
+            return;
         const totalTimeSec = (summary.totalDurationMs / 1000).toFixed(2);
         console.log(`\n${colors.bold}${colors.green}Done!${colors.reset} Generated ${colors.bold}${summary.succeeded}/${summary.total}${colors.reset} screenshots in ${colors.cyan}${totalTimeSec}s${colors.reset} → ${colors.dim}${summary.outputDir}${colors.reset}\n`);
     }

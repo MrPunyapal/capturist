@@ -13,6 +13,14 @@ export declare function resolveScaleFactor(viewport?: Viewport, scale?: number, 
 /**
  * Validates and normalizes a single page configuration.
  */
+/**
+ * Returns true when a page captures inline/file HTML instead of navigating to a URL.
+ */
+export declare function isHtmlPage(page: Pick<PageConfig, "html" | "htmlFile">): boolean;
+/**
+ * Human-readable target id for logs / results when no route is set.
+ */
+export declare function resolvePageLabel(page: PageConfig): string;
 export declare function validatePageConfig(page: unknown, index: number, globalConfig: CapturistConfig): PageConfig;
 /**
  * Validates a viewport object.

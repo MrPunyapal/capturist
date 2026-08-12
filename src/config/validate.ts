@@ -53,6 +53,27 @@ export function resolveScaleFactor(
 /**
  * Validates and normalizes a single page configuration.
  */
+/**
+ * Returns true when a page captures inline/file HTML instead of navigating to a URL.
+ */
+export function isHtmlPage(page: Pick<PageConfig, "html" | "htmlFile">): boolean {
+  return Boolean(
+    (typeof page.html === "string" && page.html.length > 0) ||
+      (typeof page.htmlFile === "string" && page.htmlFile.trim().length > 0)
+  );
+}
+
+/**
+ * Human-readable target id for logs / results when no route is set.
+ */
+export function resolvePageLabel(page: PageConfig): string {
+  if (page.label && page.label.trim()) return page.label.trim();
+  if (page.route) return page.route;
+  if (page.htmlFile) return page.htmlFile;
+  if (page.html) return `html:${page.output}`;
+  return page.output;
+}
+
 export function validatePageConfig(
   page: unknown,
   index: number,
@@ -64,17 +85,35 @@ export function validatePageConfig(
 
   const p = page as Record<string, unknown>;
   const route = (typeof p.route === "string" ? p.route : typeof p.url === "string" ? p.url : "").trim();
+  const html = typeof p.html === "string" ? p.html : undefined;
+  const htmlFile = typeof p.htmlFile === "string" ? p.htmlFile.trim() : undefined;
   const output = typeof p.output === "string" ? p.output.trim() : "";
+  const label = typeof p.label === "string" ? p.label.trim() : undefined;
 
-  if (!route) {
+  const hasHtml = Boolean((html && html.length > 0) || (htmlFile && htmlFile.length > 0));
+
+  if (!route && !hasHtml) {
     throw new Error(
-      `Invalid page at index ${index}: missing required "route" or "url" property.`
+      `Invalid page at index ${index}: provide one of "route"/"url", "html", or "htmlFile".`
+    );
+  }
+
+  if (route && hasHtml) {
+    throw new Error(
+      `Invalid page at index ${index}: use either "route"/"url" or "html"/"htmlFile", not both.`
+    );
+  }
+
+  if (html && htmlFile) {
+    throw new Error(
+      `Invalid page at index ${index}: use either "html" or "htmlFile", not both.`
     );
   }
 
   if (!output) {
+    const id = route || htmlFile || label || `page[${index}]`;
     throw new Error(
-      `Invalid page at index ${index} (route: "${route}"): missing required "output" filename.`
+      `Invalid page at index ${index} (${id}): missing required "output" filename.`
     );
   }
 
@@ -111,9 +150,14 @@ export function validatePageConfig(
     );
   }
 
+  const resolvedRoute = route || (htmlFile ? `file:${htmlFile}` : `html:${output}`);
+
   return {
-    route,
-    url: route,
+    route: resolvedRoute,
+    url: route || undefined,
+    html,
+    htmlFile,
+    label,
     output,
     outputDir: typeof p.outputDir === "string" ? p.outputDir : globalConfig.outputDir,
     viewport,
@@ -177,7 +221,7 @@ export function validateConfig(config: unknown): CapturistConfig {
 
   if (!raw.pages || !Array.isArray(raw.pages)) {
     throw new Error(
-      'Invalid configuration: missing "pages" array. Please provide at least one page target.'
+      'Invalid configuration: missing "pages" array. Please provide at least one page target (route, html, or htmlFile).'
     );
   }
 

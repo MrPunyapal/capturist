@@ -1,6 +1,8 @@
 import type { ScreenshotResult, RunSummary } from "../types/index.js";
 export declare class Logger {
     verbose: boolean;
+    /** When true, suppress info/success/capture/summary (errors still print). */
+    quiet: boolean;
     constructor(verbose?: boolean);
     banner(version?: string): void;
     info(msg: string): void;

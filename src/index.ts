@@ -2,8 +2,16 @@
 
 export { defineConfig } from "./config/define.js";
 export { loadConfig, loadConfigFile, resolveConfigFile } from "./config/loader.js";
-export { validateConfig, validatePageConfig, validateViewport } from "./config/validate.js";
-export { generateScreenshots } from "./core/runner.js";
+export {
+  validateConfig,
+  validatePageConfig,
+  validateViewport,
+  isHtmlPage,
+  resolvePageLabel,
+  inferFormatFromPath,
+  resolveScaleFactor,
+} from "./config/validate.js";
+export { generateScreenshots, captureHtml, needsNetworkNavigation } from "./core/runner.js";
 export { launchBrowser, createBrowserContext, getPlaywrightBrowser } from "./core/browser.js";
 export { capturePageScreenshot } from "./core/capture.js";
 export { startStaticServer } from "./server/static-server.js";
@@ -26,4 +34,5 @@ export type {
   ScreenshotResult,
   RunSummary,
   CliOptions,
+  CaptureHtmlOptions,
 } from "./types/index.js";

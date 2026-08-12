@@ -3,7 +3,7 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
-import { generateScreenshots } from "../dist/core/runner.js";
+import { generateScreenshots, captureHtml } from "../dist/core/runner.js";
 import { validateConfig } from "../dist/config/validate.js";
 
 describe("End-to-End Screenshot Capture Engine", () => {
@@ -58,6 +58,53 @@ describe("End-to-End Screenshot Capture Engine", () => {
   after(async () => {
     await fs.rm(tmpSiteDir, { recursive: true, force: true }).catch(() => {});
     await fs.rm(tmpOutputDir, { recursive: true, force: true }).catch(() => {});
+  });
+
+  test("captures inline html pages without baseUrl or static server", async () => {
+    const config = validateConfig({
+      outputDir: tmpOutputDir,
+      viewport: { width: 1200, height: 630 },
+      pages: [
+        {
+          label: "og-card",
+          html: `<!DOCTYPE html>
+<html>
+  <body style="margin:0;width:1200px;height:630px;display:flex;align-items:center;justify-content:center;background:#0c141d;color:#e9f1fb;font:700 48px system-ui,sans-serif">
+    capturist html card
+  </body>
+</html>`,
+          output: "html-card.png",
+        },
+      ],
+    });
+
+    const summary = await generateScreenshots(config, {
+      cwd: tmpOutputDir,
+      quiet: true,
+    });
+
+    assert.equal(summary.total, 1);
+    assert.equal(summary.succeeded, 1);
+    assert.equal(summary.failed, 0);
+    assert.equal(summary.results[0].route, "og-card");
+
+    const out = path.join(tmpOutputDir, "html-card.png");
+    const stat = await fs.stat(out);
+    assert.ok(stat.size > 500, "PNG should contain real image data");
+  });
+
+  test("captureHtml helper writes a single OG card", async () => {
+    const out = path.join(tmpOutputDir, "helper-cover.png");
+    const result = await captureHtml(
+      `<!DOCTYPE html><html><body style="margin:0;width:800px;height:400px;background:#111;color:#fff;font:32px sans-serif;display:flex;align-items:center;justify-content:center">cover</body></html>`,
+      { output: out, width: 800, height: 400 }
+    );
+
+    assert.equal(result.success, true);
+    assert.equal(result.width, 800);
+    assert.equal(result.height, 400);
+    const stat = await fs.stat(out);
+    assert.ok(stat.size > 200);
   });
 
   test("generates static screenshots deterministically with built-in server", async () => {

@@ -58,17 +58,39 @@ export interface ScreenshotHookContext {
 export type BeforeScreenshotHook = (ctx: ScreenshotHookContext) => Promise<void> | void;
 /**
  * Configuration for an individual page screenshot target.
+ *
+ * Provide **one** of:
+ * - `route` / `url` — navigate to a live page (optionally via built-in static server)
+ * - `html` — capture an inline HTML document (ideal for OG cards; no server needed)
+ * - `htmlFile` — capture an HTML file from disk (no server needed)
  */
 export interface PageConfig {
     /**
      * The route or path to navigate to (e.g. "/", "/projects", "/talks").
      * Can also be a fully qualified URL (e.g. "https://example.com/about").
+     * Not required when `html` or `htmlFile` is set.
      */
     route?: string;
     /**
      * Alias for `route`.
      */
     url?: string;
+    /**
+     * Inline HTML document to capture via Playwright `setContent`.
+     * Perfect for Open Graph cards and static site generators
+     * that already produce HTML strings — no baseUrl or static server required.
+     */
+    html?: string;
+    /**
+     * Path to an HTML file to load and capture (relative to cwd or absolute).
+     * Same benefits as `html`, but content lives on disk.
+     */
+    htmlFile?: string;
+    /**
+     * Optional human-readable label used in logs and machine-readable output.
+     * Defaults to `route`, `htmlFile`, or the output filename.
+     */
+    label?: string;
     /**
      * The output filename or relative path (e.g. "master-og-image.png", "og/projects.png").
      */
@@ -281,6 +303,12 @@ export interface CliOptions {
     serverDir?: string;
     /** Port for built-in static server. */
     serverPort?: number;
+    /** Working directory for config resolution and relative paths. */
+    cwd?: string;
+    /** Suppress non-error human logs (useful when driven by another tool). */
+    quiet?: boolean;
+    /** Emit a single JSON summary object on stdout (logs go to stderr unless quiet). */
+    json?: boolean;
     /** Print verbose debug output. */
     verbose?: boolean;
     /** Dry run mode (validates config without launching browser). */
@@ -291,5 +319,30 @@ export interface CliOptions {
     help?: boolean;
     /** Init command. */
     init?: boolean;
+}
+/**
+ * Options for the lightweight `captureHtml()` helper used by integrators.
+ */
+export interface CaptureHtmlOptions {
+    /** Output file path (absolute or relative to cwd). */
+    output: string;
+    /** Viewport width. Default 1200. */
+    width?: number;
+    /** Viewport height. Default 630. */
+    height?: number;
+    /** Device scale factor / retina multiplier. Default 1. */
+    scale?: number;
+    /** CSS selector to clip. */
+    selector?: string;
+    /** Image format. Inferred from output path when omitted. */
+    type?: ScreenshotFormat;
+    /** JPEG/WebP quality 0–100. */
+    quality?: number;
+    /** Transparent background for PNG. */
+    omitBackground?: boolean;
+    /** Working directory for relative output paths. */
+    cwd?: string;
+    /** Browser engine. Default chromium. */
+    browser?: BrowserName;
 }
 //# sourceMappingURL=index.d.ts.map

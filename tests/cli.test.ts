@@ -40,4 +40,22 @@ describe("CLI Argument Parsing", () => {
     assert.equal(parseCliArgs(["--version"]).version, true);
     assert.equal(parseCliArgs(["-v"]).version, true);
   });
+
+  test("parses integrator flags: quiet, json, cwd", () => {
+    const args = parseCliArgs([
+      "--cwd",
+      "./docs",
+      "--quiet",
+      "--json",
+      "-c",
+      "capturist.config.json",
+    ]);
+    assert.equal(args.cwd, "./docs");
+    assert.equal(args.quiet, true);
+    assert.equal(args.json, true);
+    assert.equal(args.config, "capturist.config.json");
+
+    assert.equal(parseCliArgs(["-q"]).quiet, true);
+    assert.equal(parseCliArgs(["--cwd=./out"]).cwd, "./out");
+  });
 });

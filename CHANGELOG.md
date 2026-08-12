@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2026-08-12
+
+### ✨ Added — HTML cards & tooling integration
+- **Inline HTML pages**: `html` and `htmlFile` page targets capture via Playwright `setContent` — **no `baseUrl` or static server required**.
+- **`label`**: optional log/result name for HTML cards (defaults to route / file / output).
+- **`captureHtml(html, options)`** one-shot helper for integrators that already hold an HTML string.
+- **CLI integrator flags**:
+  - `--cwd <dir>` — run against another working directory (e.g. generated `docs/`)
+  - `-q, --quiet` — suppress human logs
+  - `--json` — machine-readable summary on stdout (`ok`, paths, sizes, errors)
+- **Smarter networking**: browser server only starts when at least one page uses `route`/`url`.
+
+### 📝 Docs
+- Documented HTML-card workflow and JSON config contract for external tools / SSGs.
+
+---
+
 ## [0.1.1] - 2026-08-08
 
 ### ✨ Added
