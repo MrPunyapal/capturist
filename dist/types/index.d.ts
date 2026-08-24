@@ -57,6 +57,57 @@ export interface ScreenshotHookContext {
  */
 export type BeforeScreenshotHook = (ctx: ScreenshotHookContext) => Promise<void> | void;
 /**
+ * A single declarative interaction executed against the page while a video is
+ * being recorded. Steps run in order after the initial navigation.
+ *
+ * - `goto` — navigate to a URL (absolute, or resolved against `baseUrl`)
+ * - `click` / `dblclick` / `hover` — pointer interactions on a selector
+ * - `fill` — clear an input and set its value in one step
+ * - `type` — keystroke-by-keystroke input (optional per-character delay)
+ * - `press` — keyboard key press ("Enter", "Control+A", …), optionally focused on a selector
+ * - `scroll` — wheel scroll by pixel offsets, or into view of a selector
+ * - `wait` — pause for `ms` milliseconds and/or until `selector` is visible
+ * - `screenshot` — capture a still frame mid-flow into the page's output directory
+ */
+export type RecordStep = {
+    action: "goto";
+    url: string;
+} | {
+    action: "click";
+    selector: string;
+} | {
+    action: "dblclick";
+    selector: string;
+} | {
+    action: "hover";
+    selector: string;
+} | {
+    action: "fill";
+    selector: string;
+    value: string;
+} | {
+    action: "type";
+    selector: string;
+    text: string;
+    delay?: number;
+} | {
+    action: "press";
+    key: string;
+    selector?: string;
+} | {
+    action: "scroll";
+    x?: number;
+    y?: number;
+    selector?: string;
+} | {
+    action: "wait";
+    ms?: number;
+    selector?: string;
+} | {
+    action: "screenshot";
+    output: string;
+};
+/**
  * Configuration for an individual page screenshot target.
  *
  * Provide **one** of:
@@ -175,6 +226,18 @@ export interface PageConfig {
      * Ideal for integrators that already know when a card is dirty.
      */
     cacheKey?: string;
+    /**
+     * Record the page flow as a video instead of taking a screenshot.
+     * Output must use a video extension (`.webm`). Playwright records WebM natively.
+     * Default is false.
+     */
+    video?: boolean;
+    /**
+     * Declarative interactions executed in order while recording (`video: true`)
+     * or before the screenshot. Each step is one of `goto`, `click`, `dblclick`,
+     * `hover`, `fill`, `type`, `press`, `scroll`, `wait`, or `screenshot`.
+     */
+    steps?: RecordStep[];
 }
 /**
  * Incremental capture cache settings.
@@ -321,6 +384,8 @@ export interface ScreenshotResult {
     error?: Error;
     /** True when the existing file was reused (cache hit). */
     cached?: boolean;
+    /** True when the output is a recorded video (`.webm`). */
+    video?: boolean;
 }
 /**
  * Overall summary returned by `generateScreenshots()`.
@@ -381,6 +446,42 @@ export interface CliOptions {
     help?: boolean;
     /** Init command. */
     init?: boolean;
+    /** Single-shot screenshot command options (`capturist shot …`). */
+    shot?: SingleShotOptions;
+    /** Single-shot video recording command options (`capturist record …`). */
+    record?: SingleShotOptions;
+}
+/**
+ * Options for the single-shot CLI commands (`shot` / `record`).
+ * These build an in-memory one-page config — no capturist.config.js required.
+ */
+export interface SingleShotOptions {
+    /** URL or route to navigate to (resolved against --baseUrl when relative). */
+    url?: string;
+    /** Inline HTML document to load instead of a URL. */
+    html?: string;
+    /** Path to an HTML file to load instead of a URL. */
+    htmlFile?: string;
+    /** Output file name/path (.png/.jpeg/.webp for shot, .webm for record). */
+    output?: string;
+    /** Output directory override. */
+    outputDir?: string;
+    /** CSS selector of the element to capture (shot only). */
+    selector?: string;
+    /** Capture the full scrollable page (shot only). */
+    fullPage?: boolean;
+    /** CSS selector to wait for before capturing/recording. */
+    waitFor?: string;
+    /** Extra delay in milliseconds after page load. */
+    delay?: number;
+    /** Viewport as WIDTHxHEIGHT (e.g. 1280x720). Default 1200x630. */
+    viewport?: string;
+    /** Crisp 2x Retina output (shot only). */
+    retina?: boolean;
+    /** Emulate dark color scheme. */
+    dark?: boolean;
+    /** JSON file with a steps array or { "steps": [...] } (record only). */
+    stepsFile?: string;
 }
 /**
  * Options for the lightweight `captureHtml()` helper used by integrators.

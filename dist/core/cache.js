@@ -259,8 +259,8 @@ export function partitionCachedPages(config, cwd, cache, baseOutputDir) {
             cached: false,
             adopted: false,
         };
-        // Uncacheable (remote URL / missing source) or page.cache === false → always dirty
-        if (hash === null || page.cache === false) {
+        // Uncacheable (remote URL / missing source), video capture, or page.cache === false → always dirty
+        if (hash === null || page.cache === false || page.video === true) {
             decision.cached = false;
             dirty.push(decision);
             all.push(decision);

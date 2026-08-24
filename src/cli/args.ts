@@ -1,16 +1,59 @@
-import type { CliOptions } from "../types/index.js";
+import type { CliOptions, SingleShotOptions } from "../types/index.js";
+
+/**
+ * Reads a flag value either from `--flag=value` or the next argv entry (`--flag value`).
+ */
+function flagValue(arg: string, args: string[], next: () => string): string {
+  if (arg.includes("=")) {
+    return arg.slice(arg.indexOf("=") + 1);
+  }
+  return next();
+}
 
 /**
  * Parses raw command-line arguments into structured options without external bloat.
  */
 export function parseCliArgs(args: string[]): CliOptions {
   const options: CliOptions = {};
+  let singleShot: SingleShotOptions | null = null;
+
+  const readViewport = (raw: string): string => raw;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === "init") {
       options.init = true;
+    } else if (arg === "shot") {
+      options.shot = options.shot || {};
+      singleShot = options.shot;
+    } else if (arg === "record") {
+      options.record = options.record || {};
+      singleShot = options.record;
+    } else if (singleShot && (arg === "--url" || arg.startsWith("--url="))) {
+      singleShot.url = flagValue(arg, args, () => args[++i]);
+    } else if (singleShot && (arg === "--html" || arg.startsWith("--html="))) {
+      singleShot.html = flagValue(arg, args, () => args[++i]);
+    } else if (singleShot && (arg === "--html-file" || arg.startsWith("--html-file="))) {
+      singleShot.htmlFile = flagValue(arg, args, () => args[++i]);
+    } else if (singleShot && (arg === "--output" || arg.startsWith("--output="))) {
+      singleShot.output = flagValue(arg, args, () => args[++i]);
+    } else if (singleShot && (arg === "--selector" || arg.startsWith("--selector="))) {
+      singleShot.selector = flagValue(arg, args, () => args[++i]);
+    } else if (singleShot && (arg === "--full-page" || arg === "--fullPage")) {
+      singleShot.fullPage = true;
+    } else if (singleShot && (arg === "--wait-for" || arg.startsWith("--wait-for="))) {
+      singleShot.waitFor = flagValue(arg, args, () => args[++i]);
+    } else if (singleShot && (arg === "--delay" || arg.startsWith("--delay="))) {
+      singleShot.delay = parseInt(flagValue(arg, args, () => args[++i]), 10);
+    } else if (singleShot && (arg === "--viewport" || arg.startsWith("--viewport="))) {
+      singleShot.viewport = readViewport(flagValue(arg, args, () => args[++i]));
+    } else if (singleShot && (arg === "--retina")) {
+      singleShot.retina = true;
+    } else if (singleShot && (arg === "--dark")) {
+      singleShot.dark = true;
+    } else if (singleShot && (arg === "--steps-file" || arg.startsWith("--steps-file="))) {
+      singleShot.stepsFile = flagValue(arg, args, () => args[++i]);
     } else if (arg === "--config" || arg === "-c") {
       options.config = args[++i];
     } else if (arg.startsWith("--config=")) {
@@ -72,6 +115,30 @@ export function printHelp(): void {
 
 \x1b[1mCOMMANDS\x1b[0m
   \x1b[32minit\x1b[0m                  Scaffold a starter capturist.config.js in current directory
+  \x1b[32mshot\x1b[0m                  One-off screenshot without a config file (see SHOT below)
+  \x1b[32mrecord\x1b[0m                Record an interaction flow as .webm video (see RECORD below)
+
+\x1b[1mSHOT\x1b[0m — one page, zero config
+  $ capturist shot --url http://127.0.0.1:8000/dashboard --output ui.png --json --quiet
+
+  Flags: --url <url>  --output <file>  [--selector <css>]  [--full-page]
+         [--wait-for <css>]  [--delay <ms>]  [--viewport WxH]  [--retina]  [--dark]
+         [--html-file <path>]  [--html "<markup>"]  plus global -u/--baseUrl and -o/--outputDir
+
+\x1b[1mRECORD\x1b[0m — interaction flow as WebM video
+  $ capturist record --url http://127.0.0.1:8000/login --output demo.webm \\
+        --steps-file steps.json --viewport 1280x720 --json --quiet
+
+  steps.json:
+    { "steps": [
+      { "action": "fill", "selector": "#email", "value": "taylor@example.com" },
+      { "action": "type", "selector": "#password", "text": "secret" },
+      { "action": "click", "selector": "#login" },
+      { "action": "wait", "selector": ".dashboard" },
+      { "action": "screenshot", "output": "after-login.png" }
+    ] }
+
+  Steps: goto, click, dblclick, hover, fill, type, press, scroll, wait, screenshot
 
 \x1b[1mOPTIONS\x1b[0m
   \x1b[33m-c, --config\x1b[0m <path>    Path to config file (default: capturist.config.ts|.js|.json)

@@ -1,6 +1,8 @@
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
 import * as path from "node:path";
 import { launchBrowser, createBrowserContext } from "./browser.js";
-import { capturePageScreenshot } from "./capture.js";
+import { capturePageScreenshot, capturePageVideo } from "./capture.js";
 import { startStaticServer } from "../server/static-server.js";
 import { isHtmlPage, validateConfig } from "../config/validate.js";
 import { resolveOutputPath, ensureDirectory } from "../utils/paths.js";
@@ -155,6 +157,27 @@ export async function generateScreenshots(config, options = {}) {
             const targetFilePath = resolveOutputPath(pageOutputDir, pageConfig.output);
             const viewport = pageConfig.viewport || effectiveConfig.viewport || { width: 1200, height: 630 };
             const colorScheme = pageConfig.colorScheme || effectiveConfig.colorScheme || "light";
+            // Video pages record into a throwaway directory; the finished file is
+            // saved into place by capturePageVideo and the temp dir removed after.
+            if (pageConfig.video) {
+                const tmpVideoDir = await fs.mkdtemp(path.join(os.tmpdir(), "capturist-video-"));
+                const context = await createBrowserContext(browser, viewport, colorScheme, effectiveConfig, {
+                    recordVideoDir: tmpVideoDir,
+                });
+                try {
+                    const result = await capturePageVideo(context, pageConfig, effectiveConfig, targetFilePath, { cwd });
+                    if (!quiet)
+                        logger.logCapture(result);
+                    if (options.onProgress) {
+                        options.onProgress(result);
+                    }
+                    return result;
+                }
+                finally {
+                    await context.close().catch(() => { });
+                    await fs.rm(tmpVideoDir, { recursive: true, force: true }).catch(() => { });
+                }
+            }
             const context = await createBrowserContext(browser, viewport, colorScheme, effectiveConfig);
             try {
                 const result = await capturePageScreenshot(context, pageConfig, effectiveConfig, targetFilePath, { cwd });

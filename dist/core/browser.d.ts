@@ -10,6 +10,11 @@ export declare function getPlaywrightBrowser(browserType?: "chromium" | "firefox
 export declare function launchBrowser(config: CapturistConfig): Promise<Browser>;
 /**
  * Creates an isolated browser context configured with viewport, scale factor, and color schemes.
+ *
+ * When `options.recordVideoDir` is provided (video captures), the context records
+ * WebM video at the viewport size; the runner moves the finished file into place.
  */
-export declare function createBrowserContext(browser: Browser, viewport: Viewport, colorScheme: ColorScheme | undefined, config: CapturistConfig): Promise<BrowserContext>;
+export declare function createBrowserContext(browser: Browser, viewport: Viewport, colorScheme: ColorScheme | undefined, config: CapturistConfig, options?: {
+    recordVideoDir?: string;
+}): Promise<BrowserContext>;
 //# sourceMappingURL=browser.d.ts.map

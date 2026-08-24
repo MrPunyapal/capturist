@@ -61,12 +61,16 @@ export async function launchBrowser(config: CapturistConfig): Promise<Browser> {
 
 /**
  * Creates an isolated browser context configured with viewport, scale factor, and color schemes.
+ *
+ * When `options.recordVideoDir` is provided (video captures), the context records
+ * WebM video at the viewport size; the runner moves the finished file into place.
  */
 export async function createBrowserContext(
   browser: Browser,
   viewport: Viewport,
   colorScheme: ColorScheme = "light",
-  config: CapturistConfig
+  config: CapturistConfig,
+  options: { recordVideoDir?: string } = {}
 ): Promise<BrowserContext> {
   return await browser.newContext({
     viewport: {
@@ -79,5 +83,13 @@ export async function createBrowserContext(
     userAgent: config.userAgent,
     locale: "en-US",
     timezoneId: "UTC",
+    ...(options.recordVideoDir
+      ? {
+          recordVideo: {
+            dir: options.recordVideoDir,
+            size: { width: viewport.width, height: viewport.height },
+          },
+        }
+      : {}),
   });
 }

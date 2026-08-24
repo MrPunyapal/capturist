@@ -8,6 +8,7 @@ import type {
 } from "../types/index.js";
 import { isHtmlPage, resolvePageLabel } from "../config/validate.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
+import { executeSteps } from "./steps.js";
 
 /**
  * CSS injected into pages to enforce pixel-perfect determinism and ultra-crisp typography.
@@ -238,5 +239,129 @@ export async function capturePageScreenshot(
     };
   } finally {
     await page.close().catch(() => {});
+  }
+}
+
+/**
+ * Records a page flow as a video (`.webm`).
+ *
+ * The browser context must have been created with `recordVideo` enabled —
+ * the runner handles that. Steps execute in order while Playwright records;
+ * the video is finalized when the page closes.
+ */
+export async function capturePageVideo(
+  context: BrowserContext,
+  pageConfig: PageConfig,
+  globalConfig: CapturistConfig,
+  targetFilePath: string,
+  options: { cwd?: string } = {}
+): Promise<ScreenshotResult> {
+  const startTime = Date.now();
+  const cwd = options.cwd || process.cwd();
+  const label = resolvePageLabel(pageConfig);
+  const width = pageConfig.viewport?.width || globalConfig.viewport?.width || 1200;
+  const height = pageConfig.viewport?.height || globalConfig.viewport?.height || 630;
+
+  if (!/\.webm$/i.test(targetFilePath)) {
+    return fail(`Video output "${path.basename(targetFilePath)}" must use the .webm extension.`);
+  }
+
+  // Animations must keep playing for a natural recording.
+  const page: Page = await context.newPage();
+
+  try {
+    const timeout = globalConfig.timeout || 30000;
+    page.setDefaultTimeout(timeout);
+    page.setDefaultNavigationTimeout(timeout);
+
+    // 1. Navigate or inject HTML
+    await loadPageContent(page, pageConfig, globalConfig, cwd, timeout);
+
+    // 2. Wait for fonts, custom waitFor, and delay — same readiness contract as screenshots
+    await page.evaluate(async () => {
+      if ("fonts" in document) {
+        await (document as any).fonts.ready;
+      }
+    });
+
+    if (pageConfig.waitFor) {
+      if (typeof pageConfig.waitFor === "number") {
+        await page.waitForTimeout(pageConfig.waitFor);
+      } else if (typeof pageConfig.waitFor === "string") {
+        await page.waitForSelector(pageConfig.waitFor, { state: "visible" });
+      }
+    }
+
+    if (pageConfig.delay && pageConfig.delay > 0) {
+      await page.waitForTimeout(pageConfig.delay);
+    }
+
+    // 3. Run the interaction script while recording
+    const stepOutputDir = path.dirname(targetFilePath);
+    const executed = await executeSteps(page, pageConfig.steps || [], {
+      outputDir: stepOutputDir,
+      baseUrl: globalConfig.baseUrl,
+    });
+
+    // Small settle so the last interaction is visible before the recording stops
+    await page.waitForTimeout(250);
+
+    await ensureFileDirectory(targetFilePath);
+
+    // 4. Finalize: close the page, then save the finished video
+    const video = page.video();
+    await page.close();
+    if (!video) {
+      throw new Error("Playwright did not provide a video recorder for this context.");
+    }
+
+    await video.saveAs(targetFilePath);
+
+    const stat = await fs.stat(targetFilePath);
+    const durationMs = Date.now() - startTime;
+
+    void executed;
+
+    return {
+      route: label,
+      outputPath: path.basename(targetFilePath),
+      absolutePath: targetFilePath,
+      sizeBytes: stat.size,
+      width,
+      height,
+      durationMs,
+      success: true,
+      video: true,
+    };
+  } catch (err: any) {
+    await page.close().catch(() => {});
+    const durationMs = Date.now() - startTime;
+    return {
+      route: label,
+      outputPath: path.basename(targetFilePath),
+      absolutePath: targetFilePath,
+      sizeBytes: 0,
+      width,
+      height,
+      durationMs,
+      success: false,
+      error: err,
+      video: true,
+    };
+  }
+
+  function fail(message: string): ScreenshotResult {
+    return {
+      route: label,
+      outputPath: path.basename(targetFilePath),
+      absolutePath: targetFilePath,
+      sizeBytes: 0,
+      width,
+      height,
+      durationMs: Date.now() - startTime,
+      success: false,
+      error: new Error(message),
+      video: true,
+    };
   }
 }

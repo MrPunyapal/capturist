@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0] - 2026-08-25
+
+### ✨ Added — Video recording & single-shot CLI (agent capture)
+
+- **`video: true` + `steps[]`** on page config — record an interaction flow as `.webm`
+  via Playwright's native recorder.
+  - Steps run in order after navigation: `goto`, `click`, `dblclick`, `hover`,
+    `fill`, `type`, `press`, `scroll`, `wait`, and mid-flow `screenshot`.
+  - Animations keep playing during recording (deterministic CSS is screenshot-only).
+  - Output must use the `.webm` extension; video pages always recapture (cache bypass).
+- **`capturist shot`** — one-off screenshot without a config file:
+  `--url/--html/--html-file --output [--selector] [--full-page] [--wait-for]
+  [--delay] [--viewport WxH] [--retina] [--dark]`
+- **`capturist record`** — one-off video from a JSON steps file:
+  `--url --output demo.webm --steps-file steps.json`
+- Both commands print the standard `--json` run summary for machine integrators
+  (PHP/CI), with `video: true` on recorded results.
+- New programmatic API: `validateSteps()` and `executeSteps()` (`core/steps.js`).
+
+---
+
 ## [0.1.3] - 2026-08-12
 
 ### ✨ Added — Incremental cache

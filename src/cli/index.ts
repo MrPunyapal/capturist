@@ -3,9 +3,16 @@ import * as path from "node:path";
 import { parseCliArgs, printHelp } from "./args.js";
 import { loadConfig } from "../config/loader.js";
 import { generateScreenshots } from "../core/runner.js";
+import { validateSteps } from "../core/steps.js";
 import { resolvePageLabel } from "../config/validate.js";
 import { logger } from "../utils/logger.js";
-import type { RunSummary } from "../types/index.js";
+import type {
+  CapturistConfig,
+  CliOptions,
+  PageConfig,
+  RunSummary,
+  SingleShotOptions,
+} from "../types/index.js";
 
 const VERSION = "0.1.3";
 
@@ -112,6 +119,23 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
 
   if (!quiet) logger.banner(VERSION);
 
+  // Single-shot commands (shot / record) build an in-memory one-page config.
+  if (options.shot || options.record) {
+    try {
+      await runSingleShot(options, cwd, quiet);
+    } catch (err: any) {
+      if (options.json) {
+        process.stdout.write(
+          JSON.stringify({ ok: false, error: err?.message || String(err) }) + "\n"
+        );
+      } else {
+        logger.error(err?.message || String(err), err);
+      }
+      process.exitCode = 1;
+    }
+    return;
+  }
+
   try {
     const { config, configPath } = await loadConfig(cwd, options.config);
     if (!quiet) {
@@ -191,5 +215,126 @@ export async function runCli(argv: string[] = process.argv.slice(2)): Promise<vo
       logger.error(err.message, err);
     }
     process.exitCode = 1;
+  }
+}
+
+/**
+ * Builds an in-memory one-page config for `capturist shot` / `capturist record`
+ * and runs it through the normal pipeline with caching disabled.
+ */
+async function runSingleShot(options: CliOptions, cwd: string, quiet: boolean): Promise<void> {
+  const isRecord = Boolean(options.record);
+  const single: SingleShotOptions = (isRecord ? options.record : options.shot)!;
+
+  if (!single.output) {
+    throw new Error(
+      isRecord
+        ? 'capturist record requires --output <file.webm>.'
+        : 'capturist shot requires --output <file.png>.'
+    );
+  }
+
+  const page: PageConfig = {
+    output: single.output,
+  };
+
+  if (single.html) {
+    page.html = single.html;
+  } else if (single.htmlFile) {
+    page.htmlFile = single.htmlFile;
+  } else if (single.url) {
+    // Absolute URLs go straight into route; relative routes need a baseUrl.
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(single.url) && !options.baseUrl) {
+      throw new Error(
+        `Relative URL "${single.url}" requires --baseUrl (e.g. --baseUrl http://127.0.0.1:8000).`
+      );
+    }
+    page.route = single.url;
+  } else {
+    throw new Error(`${isRecord ? "capturist record" : "capturist shot"} requires --url, --html, or --html-file.`);
+  }
+
+  if (single.selector) {
+    assertShotOnly(isRecord, "--selector");
+    page.selector = single.selector;
+  }
+  if (single.fullPage) {
+    assertShotOnly(isRecord, "--full-page");
+    page.fullPage = true;
+  }
+  if (single.retina) {
+    assertShotOnly(isRecord, "--retina");
+    page.scale = 2;
+  }
+
+  if (single.waitFor) {
+    page.waitFor = single.waitFor;
+  }
+  if (typeof single.delay === "number" && Number.isFinite(single.delay)) {
+    page.delay = single.delay;
+  }
+
+  if (single.viewport) {
+    const match = /^(\d{1,5})x(\d{1,5})$/.exec(single.viewport);
+    if (!match) {
+      throw new Error(`Invalid --viewport "${single.viewport}". Expected WIDTHxHEIGHT, e.g. 1280x720.`);
+    }
+    page.viewport = { width: parseInt(match[1], 10), height: parseInt(match[2], 10) };
+  }
+
+  if (isRecord) {
+    if (!/\.webm$/i.test(single.output)) {
+      throw new Error("Video output must use the .webm extension.");
+    }
+    if (!single.stepsFile) {
+      throw new Error('capturist record requires --steps-file <steps.json>.');
+    }
+
+    const stepsPath = path.isAbsolute(single.stepsFile)
+      ? single.stepsFile
+      : path.resolve(cwd, single.stepsFile);
+
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await fs.readFile(stepsPath, "utf-8"));
+    } catch (err: any) {
+      throw new Error(`Failed to read steps file "${single.stepsFile}": ${err?.message || err}`);
+    }
+
+    const { steps, error } = validateSteps(raw);
+    if (error) {
+      throw new Error(error);
+    }
+    page.steps = steps;
+    page.video = true;
+  }
+
+  const config: CapturistConfig = {
+    ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
+    ...(options.outputDir ? { outputDir: options.outputDir } : {}),
+    concurrency: 1,
+    cache: false,
+    pages: [page],
+  };
+
+  const summary = await generateScreenshots(config, {
+    cwd,
+    quiet: quiet && !options.verbose,
+    force: true,
+    cache: false,
+  });
+
+  if (options.json) {
+    printJsonSummary(summary);
+  }
+
+  if (summary.failed > 0) {
+    process.exitCode = 1;
+  }
+}
+
+function assertShotOnly(isRecord: boolean, flag: string): void {
+  if (isRecord) {
+    throw new Error(`${flag} only applies to capturist shot, not record.`);
   }
 }
