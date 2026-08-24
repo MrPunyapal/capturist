@@ -202,8 +202,15 @@ async function runSingleShot(options, cwd, quiet) {
             ? 'capturist record requires --output <file.webm>.'
             : 'capturist shot requires --output <file.png>.');
     }
+    // --output is the full destination: resolve relative paths against the
+    // working directory (not the default outputDir) so integrators get the
+    // file exactly where they asked.
+    const requestedOutput = single.output;
+    const resolvedOutput = path.isAbsolute(requestedOutput)
+        ? requestedOutput
+        : path.resolve(cwd, requestedOutput);
     const page = {
-        output: single.output,
+        output: resolvedOutput,
     };
     if (single.html) {
         page.html = single.html;
@@ -272,7 +279,7 @@ async function runSingleShot(options, cwd, quiet) {
     }
     const config = {
         ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),
-        ...(options.outputDir ? { outputDir: options.outputDir } : {}),
+        outputDir: path.dirname(resolvedOutput),
         concurrency: 1,
         cache: false,
         pages: [page],
