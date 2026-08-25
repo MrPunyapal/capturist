@@ -11,6 +11,7 @@ const KNOWN_ACTIONS = new Set([
     "scroll",
     "wait",
     "screenshot",
+    "focus",
 ]);
 /**
  * Validates an untrusted value (e.g. parsed from a JSON steps file) as a
@@ -50,6 +51,7 @@ export function validateSteps(value) {
             case "click":
             case "dblclick":
             case "hover":
+            case "focus":
                 problem = requireSelector();
                 break;
             case "fill":
@@ -164,7 +166,43 @@ async function executeStep(page, step, options) {
             await page.screenshot({ path: target, type: "png" });
             break;
         }
+        case "focus":
+            await focusElement(page, step.selector);
+            break;
     }
+}
+/**
+ * Pins an element to fill the viewport so the recording frames just that
+ * widget: position fixed over everything else, page scroll locked. Applied
+ * mid-recording via the `focus` step (e.g. after opening a dropdown).
+ */
+async function focusElement(page, selector) {
+    await page.evaluate((sel) => {
+        const element = document.querySelector(sel);
+        if (!element) {
+            throw new Error(`focus target "${sel}" not found in the DOM.`);
+        }
+        const previous = document.getElementById("capturist-focus-style");
+        previous?.remove();
+        const style = document.createElement("style");
+        style.id = "capturist-focus-style";
+        style.textContent = [
+            "html, body { overflow: hidden !important; }",
+            `${sel} {`,
+            "  position: fixed !important;",
+            "  inset: 0 !important;",
+            "  width: 100vw !important;",
+            "  max-height: 100vh !important;",
+            "  z-index: 2147483647 !important;",
+            "  background: #fff !important;",
+            "  overflow: auto !important;",
+            "  margin: 0 !important;",
+            "}",
+        ].join("\n");
+        document.head.appendChild(style);
+        element.scrollIntoView({ block: "start", inline: "start" });
+    }, selector);
+    await page.waitForTimeout(150);
 }
 function resolveStepOutput(output, outputDir) {
     if (path.isAbsolute(output)) {

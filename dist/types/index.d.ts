@@ -106,6 +106,9 @@ export type RecordStep = {
 } | {
     action: "screenshot";
     output: string;
+} | {
+    action: "focus";
+    selector: string;
 };
 /**
  * Configuration for an individual page screenshot target.

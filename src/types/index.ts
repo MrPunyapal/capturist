@@ -87,7 +87,8 @@ export type RecordStep =
   | { action: "press"; key: string; selector?: string }
   | { action: "scroll"; x?: number; y?: number; selector?: string }
   | { action: "wait"; ms?: number; selector?: string }
-  | { action: "screenshot"; output: string };
+  | { action: "screenshot"; output: string }
+  | { action: "focus"; selector: string };
 
 /**
  * Configuration for an individual page screenshot target.
