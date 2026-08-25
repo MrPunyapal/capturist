@@ -257,9 +257,15 @@ async function runSingleShot(options, cwd, quiet) {
         if (!/\.webm$/i.test(single.output)) {
             throw new Error("Video output must use the .webm extension.");
         }
+        page.video = true;
         if (!single.stepsFile) {
             throw new Error('capturist record requires --steps-file <steps.json>.');
         }
+    }
+    // Both actions accept a steps file: videos need `steps`, and either action
+    // can carry off-camera `before` setup (login etc.). The file may be a bare
+    // steps array or an object wrapping steps with `before` / `pace`.
+    if (single.stepsFile) {
         const stepsPath = path.isAbsolute(single.stepsFile)
             ? single.stepsFile
             : path.resolve(cwd, single.stepsFile);
@@ -270,12 +276,40 @@ async function runSingleShot(options, cwd, quiet) {
         catch (err) {
             throw new Error(`Failed to read steps file "${single.stepsFile}": ${err?.message || err}`);
         }
-        const { steps, error } = validateSteps(raw);
+        const wrapper = !Array.isArray(raw) && typeof raw === "object" && raw !== null
+            ? raw
+            : null;
+        const rawSteps = wrapper ? wrapper.steps : raw;
+        const { steps, error } = validateSteps(rawSteps ?? []);
         if (error) {
             throw new Error(error);
         }
+        if (isRecord && steps.length === 0) {
+            throw new Error("capturist record requires at least one step.");
+        }
         page.steps = steps;
-        page.video = true;
+        if (wrapper && wrapper.before !== undefined) {
+            const setup = validateSteps(wrapper.before);
+            if (setup.error) {
+                throw new Error(`before: ${setup.error}`);
+            }
+            if (setup.steps.length > 0) {
+                page.before = setup.steps;
+            }
+        }
+        else if (!isRecord && Array.isArray(raw)) {
+            // A bare array passed to `shot` has no before/steps distinction; treat
+            // it as setup so login-style flows still work for screenshots.
+            page.before = steps;
+            page.steps = [];
+        }
+        if (isRecord &&
+            wrapper &&
+            typeof wrapper.pace === "number" &&
+            Number.isFinite(wrapper.pace) &&
+            wrapper.pace >= 0) {
+            page.pace = wrapper.pace;
+        }
     }
     const config = {
         ...(options.baseUrl ? { baseUrl: options.baseUrl } : {}),

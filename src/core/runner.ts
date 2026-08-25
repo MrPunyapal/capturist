@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { Browser } from "playwright-core";
+import type { Browser, BrowserContext } from "playwright-core";
 import type {
   CapturistConfig,
   PageConfig,
@@ -11,6 +11,7 @@ import type {
 } from "../types/index.js";
 import { launchBrowser, createBrowserContext } from "./browser.js";
 import { capturePageScreenshot, capturePageVideo } from "./capture.js";
+import { executeSteps } from "./steps.js";
 import { startStaticServer, RunningServer } from "../server/static-server.js";
 import { isHtmlPage, validateConfig } from "../config/validate.js";
 import { resolveOutputPath, ensureDirectory } from "../utils/paths.js";
@@ -57,6 +58,35 @@ async function asyncPool<T, R>(
  */
 export function needsNetworkNavigation(pages: PageConfig[]): boolean {
   return pages.some((p) => !isHtmlPage(p));
+}
+
+/**
+ * Runs a page's `before` steps (authentication, feature setup) in a separate
+ * context that is never recorded, then returns its storage state so the real
+ * capture context starts already logged in.
+ */
+async function runSetupSteps(
+  browser: Browser,
+  pageConfig: PageConfig,
+  config: CapturistConfig,
+  viewport: { width: number; height: number; deviceScaleFactor?: number },
+  colorScheme: "light" | "dark" | "no-preference"
+): Promise<Awaited<ReturnType<BrowserContext["storageState"]>> | undefined> {
+  if (!pageConfig.before || pageConfig.before.length === 0) {
+    return undefined;
+  }
+
+  const context = await createBrowserContext(browser, viewport, colorScheme, config);
+
+  try {
+    const page = await context.newPage();
+    await executeSteps(page, pageConfig.before, { baseUrl: config.baseUrl });
+    return await context.storageState();
+  } catch (err) {
+    throw new Error(`before setup failed: ${(err as Error)?.message || err}`);
+  } finally {
+    await context.close().catch(() => {});
+  }
 }
 
 export interface GenerateScreenshotsOptions {
@@ -240,12 +270,18 @@ export async function generateScreenshots(
       const viewport = pageConfig.viewport || effectiveConfig.viewport || { width: 1200, height: 630 };
       const colorScheme = pageConfig.colorScheme || effectiveConfig.colorScheme || "light";
 
+      // Setup steps (login etc.) run off-camera in their own context; the
+      // resulting storage state carries into the capture context so the video
+      // or screenshot starts already inside the app.
+      const storageState = await runSetupSteps(browser!, pageConfig, effectiveConfig, viewport, colorScheme);
+
       // Video pages record into a throwaway directory; the finished file is
       // saved into place by capturePageVideo and the temp dir removed after.
       if (pageConfig.video) {
         const tmpVideoDir = await fs.mkdtemp(path.join(os.tmpdir(), "capturist-video-"));
         const context = await createBrowserContext(browser!, viewport, colorScheme, effectiveConfig, {
           recordVideoDir: tmpVideoDir,
+          storageState,
         });
 
         try {
@@ -272,7 +308,8 @@ export async function generateScreenshots(
         browser!,
         viewport,
         colorScheme,
-        effectiveConfig
+        effectiveConfig,
+        { storageState }
       );
 
       try {

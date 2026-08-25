@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { launchBrowser, createBrowserContext } from "./browser.js";
 import { capturePageScreenshot, capturePageVideo } from "./capture.js";
+import { executeSteps } from "./steps.js";
 import { startStaticServer } from "../server/static-server.js";
 import { isHtmlPage, validateConfig } from "../config/validate.js";
 import { resolveOutputPath, ensureDirectory } from "../utils/paths.js";
@@ -31,6 +32,28 @@ async function asyncPool(poolLimit, items, iteratorFn) {
  */
 export function needsNetworkNavigation(pages) {
     return pages.some((p) => !isHtmlPage(p));
+}
+/**
+ * Runs a page's `before` steps (authentication, feature setup) in a separate
+ * context that is never recorded, then returns its storage state so the real
+ * capture context starts already logged in.
+ */
+async function runSetupSteps(browser, pageConfig, config, viewport, colorScheme) {
+    if (!pageConfig.before || pageConfig.before.length === 0) {
+        return undefined;
+    }
+    const context = await createBrowserContext(browser, viewport, colorScheme, config);
+    try {
+        const page = await context.newPage();
+        await executeSteps(page, pageConfig.before, { baseUrl: config.baseUrl });
+        return await context.storageState();
+    }
+    catch (err) {
+        throw new Error(`before setup failed: ${err?.message || err}`);
+    }
+    finally {
+        await context.close().catch(() => { });
+    }
 }
 /**
  * Primary programmatic orchestrator: generates all screenshots according to configuration.
@@ -157,12 +180,17 @@ export async function generateScreenshots(config, options = {}) {
             const targetFilePath = resolveOutputPath(pageOutputDir, pageConfig.output);
             const viewport = pageConfig.viewport || effectiveConfig.viewport || { width: 1200, height: 630 };
             const colorScheme = pageConfig.colorScheme || effectiveConfig.colorScheme || "light";
+            // Setup steps (login etc.) run off-camera in their own context; the
+            // resulting storage state carries into the capture context so the video
+            // or screenshot starts already inside the app.
+            const storageState = await runSetupSteps(browser, pageConfig, effectiveConfig, viewport, colorScheme);
             // Video pages record into a throwaway directory; the finished file is
             // saved into place by capturePageVideo and the temp dir removed after.
             if (pageConfig.video) {
                 const tmpVideoDir = await fs.mkdtemp(path.join(os.tmpdir(), "capturist-video-"));
                 const context = await createBrowserContext(browser, viewport, colorScheme, effectiveConfig, {
                     recordVideoDir: tmpVideoDir,
+                    storageState,
                 });
                 try {
                     const result = await capturePageVideo(context, pageConfig, effectiveConfig, targetFilePath, { cwd });
@@ -178,7 +206,7 @@ export async function generateScreenshots(config, options = {}) {
                     await fs.rm(tmpVideoDir, { recursive: true, force: true }).catch(() => { });
                 }
             }
-            const context = await createBrowserContext(browser, viewport, colorScheme, effectiveConfig);
+            const context = await createBrowserContext(browser, viewport, colorScheme, effectiveConfig, { storageState });
             try {
                 const result = await capturePageScreenshot(context, pageConfig, effectiveConfig, targetFilePath, { cwd });
                 if (!quiet)

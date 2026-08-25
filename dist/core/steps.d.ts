@@ -11,10 +11,14 @@ export declare function validateSteps(value: unknown): {
 /**
  * Executes declarative interaction steps against the page, in order.
  *
+ * When `options.pace` is set, that many milliseconds are inserted after every
+ * step except the last so recordings stay followable.
+ *
  * @returns The number of executed steps.
  */
 export declare function executeSteps(page: Page, steps: RecordStep[], options?: {
     outputDir?: string;
     baseUrl?: string;
+    pace?: number;
 }): Promise<number>;
 //# sourceMappingURL=steps.d.ts.map

@@ -100,6 +100,9 @@ export function validateSteps(value) {
 /**
  * Executes declarative interaction steps against the page, in order.
  *
+ * When `options.pace` is set, that many milliseconds are inserted after every
+ * step except the last so recordings stay followable.
+ *
  * @returns The number of executed steps.
  */
 export async function executeSteps(page, steps, options = {}) {
@@ -110,6 +113,9 @@ export async function executeSteps(page, steps, options = {}) {
         }
         catch (err) {
             throw new Error(`Step ${i + 1}/${steps.length} (${step.action}) failed: ${err?.message || err}`);
+        }
+        if (options.pace && options.pace > 0 && i < steps.length - 1) {
+            await page.waitForTimeout(options.pace);
         }
     }
     return steps.length;
@@ -172,9 +178,10 @@ async function executeStep(page, step, options) {
     }
 }
 /**
- * Pins an element to fill the viewport so the recording frames just that
- * widget: position fixed over everything else, page scroll locked. Applied
- * mid-recording via the `focus` step (e.g. after opening a dropdown).
+ * Frames a single widget for the recording: measures the element, then pins a
+ * scaled, centered copy of it over a dark backdrop so it fills ~90% of the
+ * viewport regardless of its natural size. Applied mid-recording via the
+ * `focus` step (e.g. after opening a dropdown or modal).
  */
 async function focusElement(page, selector) {
     await page.evaluate((sel) => {
@@ -182,27 +189,45 @@ async function focusElement(page, selector) {
         if (!element) {
             throw new Error(`focus target "${sel}" not found in the DOM.`);
         }
-        const previous = document.getElementById("capturist-focus-style");
-        previous?.remove();
+        const rect = element.getBoundingClientRect();
+        if (rect.width < 2 || rect.height < 2) {
+            throw new Error(`focus target "${sel}" has no visible box on the page.`);
+        }
+        document.getElementById("capturist-focus-style")?.remove();
+        document.getElementById("capturist-focus-backdrop")?.remove();
+        // Scale to fill ~90% of the frame, capped so small widgets don't pixelate.
+        const scale = Math.min((window.innerWidth * 0.9) / rect.width, (window.innerHeight * 0.9) / rect.height, 3);
+        element.setAttribute("data-capturist-focus", "");
+        const backdrop = document.createElement("div");
+        backdrop.id = "capturist-focus-backdrop";
+        document.body.appendChild(backdrop);
         const style = document.createElement("style");
         style.id = "capturist-focus-style";
         style.textContent = [
             "html, body { overflow: hidden !important; }",
-            `${sel} {`,
+            "#capturist-focus-backdrop {",
             "  position: fixed !important;",
             "  inset: 0 !important;",
-            "  width: 100vw !important;",
-            "  max-height: 100vh !important;",
+            "  z-index: 2147483646 !important;",
+            "  background: rgba(15, 23, 42, 0.55) !important;",
+            "}",
+            "[data-capturist-focus] {",
+            "  position: fixed !important;",
+            "  left: 50% !important;",
+            "  top: 50% !important;",
+            `  width: ${Math.round(rect.width)}px !important;`,
+            `  transform: translate(-50%, -50%) scale(${scale.toFixed(4)}) !important;`,
             "  z-index: 2147483647 !important;",
-            "  background: #fff !important;",
-            "  overflow: auto !important;",
             "  margin: 0 !important;",
+            "  overflow: auto !important;",
+            "  max-height: 94vh !important;",
+            "  box-shadow: 0 24px 64px rgba(2, 8, 23, 0.45) !important;",
             "}",
         ].join("\n");
         document.head.appendChild(style);
-        element.scrollIntoView({ block: "start", inline: "start" });
     }, selector);
-    await page.waitForTimeout(150);
+    // Let layout settle so the frame is stable before the next step runs.
+    await page.waitForTimeout(250);
 }
 function resolveStepOutput(output, outputDir) {
     if (path.isAbsolute(output)) {

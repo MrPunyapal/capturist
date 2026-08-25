@@ -243,9 +243,23 @@ export interface PageConfig {
   /**
    * Declarative interactions executed in order while recording (`video: true`)
    * or before the screenshot. Each step is one of `goto`, `click`, `dblclick`,
-   * `hover`, `fill`, `type`, `press`, `scroll`, `wait`, or `screenshot`.
+   * `hover`, `fill`, `type`, `press`, `scroll`, `wait`, `screenshot`,
+   * or `focus`.
    */
   steps?: RecordStep[];
+
+  /**
+   * Setup steps (e.g. logging in) that run in a separate browser context
+   * BEFORE the capture starts. The resulting cookies / storage carry over,
+   * so the recording never shows the login page or other setup navigation.
+   */
+  before?: RecordStep[];
+
+  /**
+   * Pause in milliseconds inserted between recorded steps so viewers can
+   * follow the flow. Default 400. Only applies to video captures.
+   */
+  pace?: number;
 }
 
 /**

@@ -296,11 +296,12 @@ export async function capturePageVideo(
       await page.waitForTimeout(pageConfig.delay);
     }
 
-    // 3. Run the interaction script while recording
+    // 3. Run the interaction script while recording, paced so it stays watchable
     const stepOutputDir = path.dirname(targetFilePath);
     const executed = await executeSteps(page, pageConfig.steps || [], {
       outputDir: stepOutputDir,
       baseUrl: globalConfig.baseUrl,
+      pace: pageConfig.pace ?? 400,
     });
 
     // Small settle so the last interaction is visible before the recording stops
