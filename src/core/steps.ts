@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import type { Page } from "playwright-core";
+import type { Locator, Page } from "playwright-core";
 import type { RecordStep } from "../types/index.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
 
@@ -128,7 +128,7 @@ export function validateSteps(value: unknown): { steps: RecordStep[]; error?: st
 export async function executeSteps(
   page: Page,
   steps: RecordStep[],
-  options: { outputDir?: string; baseUrl?: string; pace?: number } = {}
+  options: { outputDir?: string; baseUrl?: string; pace?: number; padding?: number } = {}
 ): Promise<number> {
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
@@ -150,7 +150,7 @@ export async function executeSteps(
 async function executeStep(
   page: Page,
   step: RecordStep,
-  options: { outputDir?: string; baseUrl?: string }
+  options: { outputDir?: string; baseUrl?: string; padding?: number }
 ): Promise<void> {
   switch (step.action) {
     case "goto": {
@@ -159,37 +159,44 @@ async function executeStep(
       break;
     }
     case "click":
-      await page.click(step.selector);
+      await (await firstVisible(page, step.selector)).click();
       break;
     case "dblclick":
-      await page.dblclick(step.selector);
+      await (await firstVisible(page, step.selector)).dblclick();
       break;
     case "hover":
-      await page.hover(step.selector);
+      await (await firstVisible(page, step.selector)).hover();
       break;
     case "fill":
-      await page.fill(step.selector, step.value);
+      await (await firstVisible(page, step.selector)).fill(step.value);
       break;
     case "type":
-      await page.type(step.selector, step.text, { delay: step.delay ?? 25 });
+      await (await firstVisible(page, step.selector)).pressSequentially(step.text, { delay: step.delay ?? 25 });
       break;
     case "press":
       if (step.selector) {
-        await page.press(step.selector, step.key);
+        await (await firstVisible(page, step.selector)).press(step.key);
       } else {
         await page.keyboard.press(step.key);
       }
       break;
     case "scroll":
       if (step.selector) {
-        await page.locator(step.selector).first().scrollIntoViewIfNeeded();
+        const target = await firstVisible(page, step.selector);
+        if (typeof step.x === "number" || typeof step.y === "number") {
+          await target.evaluate((element, offsets) => {
+            element.scrollBy(offsets.x, offsets.y);
+          }, { x: step.x ?? 0, y: step.y ?? 0 });
+        } else {
+          await target.scrollIntoViewIfNeeded();
+        }
       } else {
         await page.mouse.wheel(step.x ?? 0, step.y ?? 0);
       }
       break;
     case "wait":
       if (step.selector) {
-        await page.waitForSelector(step.selector, { state: "visible" });
+        await waitForVisible(page, step.selector);
       }
       if (typeof step.ms === "number" && step.ms > 0) {
         await page.waitForTimeout(step.ms);
@@ -202,74 +209,167 @@ async function executeStep(
       break;
     }
     case "focus":
-      await focusElement(page, step.selector);
+      await focusElement(
+        page,
+        step.selector,
+        typeof step.padding === "number" ? step.padding : options.padding
+      );
       break;
   }
 }
 
+async function firstVisible(page: Page, selector: string): Promise<Locator> {
+  const candidates = page.locator(selector);
+  const count = await candidates.count();
+
+  for (let index = 0; index < count; index++) {
+    const candidate = candidates.nth(index);
+    if (await candidate.isVisible()) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`No visible element matched selector "${selector}".`);
+}
+
+async function waitForVisible(page: Page, selector: string): Promise<Locator> {
+  const deadline = Date.now() + 30000;
+
+  while (Date.now() < deadline) {
+    try {
+      const candidate = await firstVisible(page, selector);
+      const box = await candidate.boundingBox();
+      if (box && box.width > 0 && box.height > 0) return candidate;
+    } catch {
+      // The selector may be valid but the element may not exist yet.
+    }
+    await page.waitForTimeout(50);
+  }
+
+  throw new Error(`Timed out waiting for a visible element matching selector "${selector}".`);
+}
+
+export const DEFAULT_WIDGET_PADDING = 32;
+
 /**
- * Frames a single widget for the recording: measures the element, then pins a
- * scaled, centered copy of it over a dark backdrop so it fills ~90% of the
- * viewport regardless of its natural size. Applied mid-recording via the
- * `focus` step (e.g. after opening a dropdown or modal).
+ * Frames a widget for video: opaque card, centered, with `padding` pixels of
+ * solid backdrop around it so the rest of the page is not in the shot.
  */
-async function focusElement(page: Page, selector: string): Promise<void> {
-  await page.evaluate((sel: string) => {
-    const element = document.querySelector(sel);
+export async function focusElement(
+  page: Page,
+  selector: string,
+  padding: number = DEFAULT_WIDGET_PADDING
+): Promise<void> {
+  const pad = Number.isFinite(padding) && padding >= 0 ? padding : DEFAULT_WIDGET_PADDING;
 
-    if (!element) {
-      throw new Error(`focus target "${sel}" not found in the DOM.`);
-    }
+  await page.evaluate(
+    ({ sel }: { sel: string }) => {
+      const element = document.querySelector(sel) as HTMLElement | null;
 
-    const rect = element.getBoundingClientRect();
+      if (!element) {
+        throw new Error(`focus target "${sel}" not found in the DOM.`);
+      }
 
-    if (rect.width < 2 || rect.height < 2) {
-      throw new Error(`focus target "${sel}" has no visible box on the page.`);
-    }
+      const rect = element.getBoundingClientRect();
 
-    document.getElementById("capturist-focus-style")?.remove();
-    document.getElementById("capturist-focus-backdrop")?.remove();
+      if (rect.width < 2 || rect.height < 2) {
+        throw new Error(`focus target "${sel}" has no visible box on the page.`);
+      }
 
-    // Scale to fill ~90% of the frame, capped so small widgets don't pixelate.
-    const scale = Math.min(
-      (window.innerWidth * 0.9) / rect.width,
-      (window.innerHeight * 0.9) / rect.height,
-      3
-    );
+      document.getElementById("capturist-focus-style")?.remove();
+      document.getElementById("capturist-focus-backdrop")?.remove();
 
-    element.setAttribute("data-capturist-focus", "");
+      let root: HTMLElement = element;
+      for (let index = 0; index < 6 && root.parentElement; index++) {
+        const parent = root.parentElement;
+        if (parent.querySelector("label, .fi-field-label, .fi-field-label-ctn")) {
+          root = parent;
+          break;
+        }
+        root = parent;
+      }
+      root.setAttribute("data-capturist-focus-root", "");
+      element.setAttribute("data-capturist-focus", "");
 
-    const backdrop = document.createElement("div");
-    backdrop.id = "capturist-focus-backdrop";
-    document.body.appendChild(backdrop);
+      // Filament renders some field labels outside the select's wire component.
+      // Copy the nearest real label into the composed stage so focused captures
+      // identify the control instead of showing an unlabeled dropdown.
+      if (!root.querySelector("label, .fi-field-label, .fi-field-label-ctn")) {
+        const labels = Array.from(document.querySelectorAll("label, .fi-field-label, .fi-field-label-ctn"))
+          .filter((candidate) => (candidate.textContent || "").trim());
+        const source = labels.sort((a, b) => {
+          const score = (candidate: Element) => {
+            const box = candidate.getBoundingClientRect();
+            return Math.abs(box.bottom - rect.top) + Math.abs(box.left - rect.left) * 0.15;
+          };
+          return score(a) - score(b);
+        })[0];
+        if (source) {
+          const label = document.createElement("div");
+          label.textContent = (source.textContent || "").trim();
+          label.setAttribute("data-capturist-focus-label", "");
+          root.prepend(label);
+        }
+      }
 
-    const style = document.createElement("style");
-    style.id = "capturist-focus-style";
-    style.textContent = [
-      "html, body { overflow: hidden !important; }",
-      "#capturist-focus-backdrop {",
-      "  position: fixed !important;",
-      "  inset: 0 !important;",
-      "  z-index: 2147483646 !important;",
-      "  background: rgba(15, 23, 42, 0.55) !important;",
-      "}",
-      "[data-capturist-focus] {",
-      "  position: fixed !important;",
-      "  left: 50% !important;",
-      "  top: 50% !important;",
-      `  width: ${Math.round(rect.width)}px !important;`,
-      `  transform: translate(-50%, -50%) scale(${scale.toFixed(4)}) !important;`,
-      "  z-index: 2147483647 !important;",
-      "  margin: 0 !important;",
-      "  overflow: auto !important;",
-      "  max-height: 94vh !important;",
-      "  box-shadow: 0 24px 64px rgba(2, 8, 23, 0.45) !important;",
-      "}",
-    ].join("\n");
-    document.head.appendChild(style);
-  }, selector);
+      const backdrop = document.createElement("div");
+      backdrop.id = "capturist-focus-backdrop";
+      document.body.appendChild(backdrop);
 
-  // Let layout settle so the frame is stable before the next step runs.
+      const style = document.createElement("style");
+      style.id = "capturist-focus-style";
+      style.textContent = [
+        "html, body { overflow: hidden !important; background: #0f172a !important; }",
+        "#capturist-focus-backdrop { position: fixed !important; inset: 0 !important; z-index: 2147483000 !important; background: #0f172a !important; pointer-events: none !important; }",
+        "[data-capturist-focus-root], [data-capturist-focus-root] * { visibility: visible !important; }",
+        "[data-capturist-focus-root] { display: block !important; position: fixed !important; left: 50% !important; top: 50% !important; transform: translate(-50%, -50%) !important; z-index: 2147483001 !important; width: min(560px, calc(100vw - 48px)) !important; padding: 24px !important; background: #fff !important; border-radius: 12px !important; box-shadow: 0 16px 40px rgba(0, 0, 0, .35) !important; }",
+        "[data-capturist-focus-label] { display: block !important; margin: 0 0 8px !important; color: #111827 !important; font-size: 14px !important; font-weight: 600 !important; line-height: 20px !important; visibility: visible !important; }",
+        "[data-capturist-focus-root] .fi-select-input { display: block !important; }",
+        "[data-capturist-focus-root] .fi-select-input, [data-capturist-focus-root] .fi-select-input-btn { width: 100% !important; }",
+        "[data-capturist-focus-root] .fi-select-input-btn { display: flex !important; min-height: 40px !important; border: 1px solid #d1d5db !important; border-radius: 8px !important; background: #fff !important; color: #6b7280 !important; }",
+        "[role=\"listbox\"], [role=\"dialog\"], [role=\"menu\"], [data-popper-placement], .fi-select-panel, .fi-dropdown-panel, .fi-select-panel *, .fi-dropdown-panel * { visibility: visible !important; pointer-events: auto !important; }",
+        "[role=\"listbox\"] input, .fi-select-panel input, .fi-dropdown-panel input { display: none !important; }",
+        "[role=\"listbox\"], .fi-select-panel, .fi-dropdown-panel { position: fixed !important; left: 50% !important; top: calc(50% + 70px) !important; transform: translateX(-50%) !important; width: min(560px, calc(100vw - 48px)) !important; max-height: 320px !important; overflow: auto !important; z-index: 2147483002 !important; background: #fff !important; border-radius: 12px !important; box-shadow: 0 16px 40px rgba(0, 0, 0, .35) !important; }",
+        "[role=\"listbox\"]::-webkit-scrollbar, .fi-select-panel::-webkit-scrollbar, .fi-dropdown-panel::-webkit-scrollbar { width: 10px !important; }",
+        "[role=\"listbox\"]::-webkit-scrollbar-thumb, .fi-select-panel::-webkit-scrollbar-thumb, .fi-dropdown-panel::-webkit-scrollbar-thumb { background: #9ca3af !important; border-radius: 999px !important; }",
+        ".capturist-scroll-track { display: none; position: absolute !important; top: 8px !important; right: 8px !important; bottom: 8px !important; width: 6px !important; border-radius: 999px !important; background: #e5e7eb !important; pointer-events: none !important; z-index: 4 !important; }",
+        ".capturist-scroll-thumb { position: absolute !important; left: 0 !important; width: 100% !important; border-radius: 999px !important; background: #6b7280 !important; }",
+      ].join("\n");
+      document.head.appendChild(style);
+
+      const addScrollCue = (panel: Element) => {
+        if (panel.querySelector(":scope > .capturist-scroll-track")) return;
+        const track = document.createElement("div");
+        track.className = "capturist-scroll-track";
+        const thumb = document.createElement("div");
+        thumb.className = "capturist-scroll-thumb";
+        track.appendChild(thumb);
+        panel.appendChild(track);
+        const update = () => {
+          const element = panel as HTMLElement;
+          const overflow = element.scrollHeight - element.clientHeight;
+          track.style.display = overflow > 2 ? "block" : "none";
+          if (overflow > 2) {
+            const ratio = element.clientHeight / element.scrollHeight;
+            thumb.style.height = `${Math.max(24, ratio * 100)}%`;
+            thumb.style.top = `${(element.scrollTop / overflow) * (100 - Math.max(24, ratio * 100))}%`;
+          }
+        };
+        panel.addEventListener("scroll", update, { passive: true });
+        new MutationObserver(update).observe(panel, { childList: true, subtree: true });
+        if (typeof ResizeObserver !== "undefined") new ResizeObserver(update).observe(panel);
+        update();
+      };
+
+      const attachScrollCues = () => {
+        document.querySelectorAll('[role="listbox"], .fi-select-panel, .fi-dropdown-panel').forEach(addScrollCue);
+      };
+      attachScrollCues();
+      new MutationObserver(attachScrollCues).observe(document.body, { childList: true, subtree: true });
+    },
+    { sel: selector }
+  );
+
   await page.waitForTimeout(250);
 }
 

@@ -79,6 +79,29 @@ describe("Single-shot CLI parsing", () => {
     assert.equal(options.quiet, true);
   });
 
+  test("parses selector and padding on shot and record", () => {
+    const shot = parseCliArgs([
+      "shot",
+      "--url=http://127.0.0.1:8000/",
+      "--output=w.png",
+      "--selector=.fi-field",
+      "--padding=32",
+    ]);
+    const record = parseCliArgs([
+      "record",
+      "--url=http://127.0.0.1:8000/",
+      "--output=w.webm",
+      "--selector=.fi-select-panel",
+      "--padding=24",
+      "--steps-file=steps.json",
+    ]);
+
+    assert.equal(shot.shot?.selector, ".fi-field");
+    assert.equal(shot.shot?.padding, 32);
+    assert.equal(record.record?.selector, ".fi-select-panel");
+    assert.equal(record.record?.padding, 24);
+  });
+
   test("parses space-separated flag values", () => {
     const options = parseCliArgs(["record", "--url", "/login", "--steps-file", "steps.json"]);
 

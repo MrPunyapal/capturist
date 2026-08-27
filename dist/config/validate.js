@@ -122,6 +122,7 @@ export function validatePageConfig(page, index, globalConfig) {
         scale: pageScale ?? globalConfig.scale,
         retina: pageRetina ?? globalConfig.retina,
         selector: typeof p.selector === "string" ? p.selector : undefined,
+        padding: typeof p.padding === "number" && p.padding >= 0 ? p.padding : undefined,
         fullPage: typeof p.fullPage === "boolean" ? p.fullPage : false,
         colorScheme,
         delay: typeof p.delay === "number" ? Math.max(0, p.delay) : globalConfig.defaultDelay || 0,

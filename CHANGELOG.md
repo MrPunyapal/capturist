@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## Unreleased
+
+## [0.5.0] - 2026-08-27
+
+- Selector screenshots crop the widget and keep padding around it (default 32px, `--padding`).
+- `shot` runs same-page `steps` after load (open a dropdown, then crop). Login still belongs in `before`.
+- `record --selector` frames that widget after steps, with padding and an opaque card so the rest of the page is not in the video.
+
 ## [0.2.0] - 2026-08-25
 
 ### ✨ Added — Video recording & single-shot CLI (agent capture)

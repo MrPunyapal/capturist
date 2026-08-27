@@ -42,6 +42,9 @@ export function parseCliArgs(args) {
         else if (singleShot && (arg === "--selector" || arg.startsWith("--selector="))) {
             singleShot.selector = flagValue(arg, args, () => args[++i]);
         }
+        else if (singleShot && (arg === "--padding" || arg.startsWith("--padding="))) {
+            singleShot.padding = parseInt(flagValue(arg, args, () => args[++i]), 10);
+        }
         else if (singleShot && (arg === "--full-page" || arg === "--fullPage")) {
             singleShot.fullPage = true;
         }
@@ -150,13 +153,13 @@ export function printHelp() {
 \x1b[1mSHOT\x1b[0m — one page, zero config
   $ capturist shot --url http://127.0.0.1:8000/dashboard --output ui.png --json --quiet
 
-  Flags: --url <url>  --output <file>  [--selector <css>]  [--full-page]
+  Flags: --url <url>  --output <file>  [--selector <css>]  [--padding <px>]  [--full-page]
          [--wait-for <css>]  [--delay <ms>]  [--viewport WxH]  [--retina]  [--dark]
          [--html-file <path>]  [--html "<markup>"]  plus global -u/--baseUrl and -o/--outputDir
 
 \x1b[1mRECORD\x1b[0m — interaction flow as WebM video
-  $ capturist record --url http://127.0.0.1:8000/login --output demo.webm \\
-        --steps-file steps.json --viewport 1280x720 --json --quiet
+  $ capturist record --url http://127.0.0.1:8000/users --output demo.webm \\
+        --steps-file steps.json --selector .widget --padding 32 --viewport 1280x720 --json --quiet
 
   steps.json:
     { "steps": [

@@ -198,6 +198,7 @@ function captureFingerprintSlice(page, config) {
         scale: page.scale ?? config.scale ?? null,
         retina: page.retina ?? config.retina ?? false,
         selector: page.selector || null,
+        padding: page.padding ?? null,
         fullPage: page.fullPage === true,
         colorScheme: page.colorScheme || config.colorScheme || "light",
         type: page.type || "png",

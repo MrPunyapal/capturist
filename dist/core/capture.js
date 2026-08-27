@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { isHtmlPage, resolvePageLabel } from "../config/validate.js";
 import { joinUrl, ensureFileDirectory } from "../utils/paths.js";
-import { executeSteps } from "./steps.js";
+import { DEFAULT_WIDGET_PADDING, executeSteps, focusElement } from "./steps.js";
 /**
  * CSS injected into pages to enforce pixel-perfect determinism and ultra-crisp typography.
  */
@@ -103,6 +103,16 @@ export async function capturePageScreenshot(context, pageConfig, globalConfig, t
         if (pageConfig.delay && pageConfig.delay > 0) {
             await page.waitForTimeout(pageConfig.delay);
         }
+        // 5b. Same-page steps (open a dropdown, etc.) — not login; login is `before`.
+        if (pageConfig.selector) {
+            await focusElement(page, pageConfig.selector, pageConfig.padding);
+        }
+        if (pageConfig.steps && pageConfig.steps.length > 0) {
+            await executeSteps(page, pageConfig.steps, {
+                outputDir: path.dirname(targetFilePath),
+                baseUrl: globalConfig.baseUrl,
+            });
+        }
         // 6. Execute beforeScreenshot lifecycle hook if present
         if (pageConfig.beforeScreenshot) {
             await pageConfig.beforeScreenshot({
@@ -133,18 +143,13 @@ export async function capturePageScreenshot(context, pageConfig, globalConfig, t
         const screenshotType = pageConfig.type || "png";
         const quality = screenshotType === "png" ? undefined : pageConfig.quality;
         if (pageConfig.selector) {
-            const element = await page.$(pageConfig.selector);
-            if (!element) {
-                throw new Error(`Target selector "${pageConfig.selector}" not found on page "${label}".`);
-            }
-            const box = await element.boundingBox();
-            if (box) {
-                width = Math.round(box.width);
-                height = Math.round(box.height);
-            }
-            buffer = (await element.screenshot({
+            const clip = await paddedSelectorClip(page, pageConfig.selector, pageConfig.padding);
+            width = clip.width;
+            height = clip.height;
+            buffer = (await page.screenshot({
                 type: screenshotType,
                 quality,
+                clip,
                 omitBackground: pageConfig.omitBackground,
             }));
         }
@@ -237,12 +242,19 @@ export async function capturePageVideo(context, pageConfig, globalConfig, target
         if (pageConfig.delay && pageConfig.delay > 0) {
             await page.waitForTimeout(pageConfig.delay);
         }
+        const padding = pageConfig.padding ?? DEFAULT_WIDGET_PADDING;
+        // Apply framing before recording. Applying it after the interaction steps
+        // records the full page and only shows the focused subject at the end.
+        if (pageConfig.selector) {
+            await focusElement(page, pageConfig.selector, padding);
+        }
         // 3. Run the interaction script while recording, paced so it stays watchable
         const stepOutputDir = path.dirname(targetFilePath);
         const executed = await executeSteps(page, pageConfig.steps || [], {
             outputDir: stepOutputDir,
             baseUrl: globalConfig.baseUrl,
             pace: pageConfig.pace ?? 400,
+            padding,
         });
         // Small settle so the last interaction is visible before the recording stops
         await page.waitForTimeout(250);
@@ -299,5 +311,59 @@ export async function capturePageVideo(context, pageConfig, globalConfig, target
             video: true,
         };
     }
+}
+/**
+ * Clip a selector with padding around it, clamped to the viewport.
+ */
+async function paddedSelectorClip(page, selector, padding) {
+    const element = await page.$(selector);
+    if (!element) {
+        throw new Error(`Target selector "${selector}" not found on page.`);
+    }
+    await element.scrollIntoViewIfNeeded();
+    const box = await element.boundingBox();
+    if (!box || box.width < 1 || box.height < 1) {
+        throw new Error(`Target selector "${selector}" has no visible box.`);
+    }
+    const pad = typeof padding === "number" && Number.isFinite(padding) && padding >= 0
+        ? padding
+        : DEFAULT_WIDGET_PADDING;
+    const viewport = page.viewportSize() ?? { width: 1200, height: 630 };
+    const bounds = await page.evaluate(({ sel, target }) => {
+        const targetElement = document.querySelector('[data-capturist-focus-root]') || document.querySelector(sel);
+        if (!targetElement)
+            return target;
+        const targetRect = targetElement.getBoundingClientRect();
+        let left = targetRect.width > 1 ? targetRect.left : target.x;
+        let top = targetRect.height > 1 ? targetRect.top : target.y;
+        let right = targetRect.width > 1 ? targetRect.right : target.x + target.width;
+        let bottom = targetRect.height > 1 ? targetRect.bottom : target.y + target.height;
+        const targetRight = right;
+        const targetBottom = bottom;
+        for (const candidate of document.querySelectorAll('[role="listbox"], [role="dialog"], [role="menu"], [data-popper-placement], .fi-select-panel, .fi-dropdown-panel')) {
+            const rect = candidate.getBoundingClientRect();
+            const style = window.getComputedStyle(candidate);
+            if (rect.width < 2 || rect.height < 2 ||
+                style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0 ||
+                rect.left > targetRight + 24 || rect.right < left - 24 ||
+                rect.top > targetBottom + 500 || rect.bottom < top - 150)
+                continue;
+            left = Math.min(left, rect.left);
+            top = Math.min(top, rect.top);
+            right = Math.max(right, rect.right);
+            bottom = Math.max(bottom, rect.bottom);
+        }
+        return { x: left, y: top, width: right - left, height: bottom - top };
+    }, { sel: selector, target: box });
+    const x = Math.max(0, bounds.x - pad);
+    const y = Math.max(0, bounds.y - pad);
+    const right = Math.min(viewport.width, bounds.x + bounds.width + pad);
+    const bottom = Math.min(viewport.height, bounds.y + bounds.height + pad);
+    return {
+        x: Math.floor(x),
+        y: Math.floor(y),
+        width: Math.max(1, Math.ceil(right - x)),
+        height: Math.max(1, Math.ceil(bottom - y)),
+    };
 }
 //# sourceMappingURL=capture.js.map

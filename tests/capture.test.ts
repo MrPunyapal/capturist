@@ -153,4 +153,36 @@ describe("End-to-End Screenshot Capture Engine", () => {
     assert.ok(projectsStat.size > 1000, "projects.png should be > 1KB");
     assert.ok(badgeStat.size > 100, "hero-badge.png should be > 100 bytes");
   });
+
+  test("selector crop keeps padding around the widget", async () => {
+    const tightDir = path.join(tmpOutputDir, "tight");
+    const paddedDir = path.join(tmpOutputDir, "padded");
+    await fs.mkdir(tightDir, { recursive: true });
+    await fs.mkdir(paddedDir, { recursive: true });
+
+    const tight = await generateScreenshots(
+      validateConfig({
+        server: { dir: tmpSiteDir },
+        outputDir: tightDir,
+        viewport: { width: 1200, height: 630 },
+        pages: [{ route: "/", output: "badge.png", selector: "#hero-badge", padding: 0 }],
+      }),
+      { cwd: tmpSiteDir, quiet: true }
+    );
+
+    const padded = await generateScreenshots(
+      validateConfig({
+        server: { dir: tmpSiteDir },
+        outputDir: paddedDir,
+        viewport: { width: 1200, height: 630 },
+        pages: [{ route: "/", output: "badge.png", selector: "#hero-badge", padding: 32 }],
+      }),
+      { cwd: tmpSiteDir, quiet: true }
+    );
+
+    assert.equal(tight.succeeded, 1);
+    assert.equal(padded.succeeded, 1);
+    assert.ok((padded.results[0].width ?? 0) > (tight.results[0].width ?? 0));
+    assert.ok((padded.results[0].height ?? 0) > (tight.results[0].height ?? 0));
+  });
 });

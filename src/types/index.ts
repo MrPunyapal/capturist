@@ -88,7 +88,7 @@ export type RecordStep =
   | { action: "scroll"; x?: number; y?: number; selector?: string }
   | { action: "wait"; ms?: number; selector?: string }
   | { action: "screenshot"; output: string }
-  | { action: "focus"; selector: string };
+  | { action: "focus"; selector: string; padding?: number };
 
 /**
  * Configuration for an individual page screenshot target.
@@ -159,9 +159,16 @@ export interface PageConfig {
 
   /**
    * CSS selector of a specific element to capture (e.g. "#hero", ".card", "main").
-   * When specified, only that element's bounding box is captured.
+   * When specified, only that element's bounding box is captured (plus `padding`).
+   * On video, the same selector is framed in the recording after `steps` run.
    */
   selector?: string;
+
+  /**
+   * Extra pixels of surrounding page kept around a `selector` crop (screenshot)
+   * or around the framed widget (video `focus`). Default 32. Pass 0 for a tight crop.
+   */
+  padding?: number;
 
   /**
    * Whether to capture the full scrollable page instead of just the viewport.
@@ -515,8 +522,10 @@ export interface SingleShotOptions {
   output?: string;
   /** Output directory override. */
   outputDir?: string;
-  /** CSS selector of the element to capture (shot only). */
+  /** CSS selector of the element to capture (shot) or frame (record). */
   selector?: string;
+  /** Extra pixels around a selector crop / focused widget. Default 32. */
+  padding?: number;
   /** Capture the full scrollable page (shot only). */
   fullPage?: boolean;
   /** CSS selector to wait for before capturing/recording. */

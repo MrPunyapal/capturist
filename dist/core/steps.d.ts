@@ -20,5 +20,12 @@ export declare function executeSteps(page: Page, steps: RecordStep[], options?: 
     outputDir?: string;
     baseUrl?: string;
     pace?: number;
+    padding?: number;
 }): Promise<number>;
+export declare const DEFAULT_WIDGET_PADDING = 32;
+/**
+ * Frames a widget for video: opaque card, centered, with `padding` pixels of
+ * solid backdrop around it so the rest of the page is not in the shot.
+ */
+export declare function focusElement(page: Page, selector: string, padding?: number): Promise<void>;
 //# sourceMappingURL=steps.d.ts.map

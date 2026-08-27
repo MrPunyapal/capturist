@@ -229,8 +229,13 @@ async function runSingleShot(options, cwd, quiet) {
         throw new Error(`${isRecord ? "capturist record" : "capturist shot"} requires --url, --html, or --html-file.`);
     }
     if (single.selector) {
-        assertShotOnly(isRecord, "--selector");
         page.selector = single.selector;
+    }
+    if (typeof single.padding === "number" && Number.isFinite(single.padding) && single.padding >= 0) {
+        page.padding = single.padding;
+    }
+    else if (single.selector) {
+        page.padding = 32;
     }
     if (single.fullPage) {
         assertShotOnly(isRecord, "--full-page");
