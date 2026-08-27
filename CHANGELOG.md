@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## Unreleased
+## [0.5.1] - 2026-08-28
+
+- Harden step execution: `click`/`hover`/`fill`/`type`/`press`/`scroll` now target the first **visible** element instead of the first match in the DOM, so hidden duplicate nodes (e.g. all options) no longer break a step.
+- `wait` polls for a visible element with a timeout instead of relying on a one-shot `waitForSelector`.
+- Rewritten `focus` framing into a composed stage: opaque card, inline label copied in for unlabeled controls, a positioned dropdown/listbox, and a custom scrollbar + position cue so scrollable widgets read as a clean focused shot.
+- `scroll` with a selector can scroll by offsets (`x`/`y`) inside the element.
+- `inspect`-style selector suggestions prefer stable class/test-id/wire-key paths over per-request ids.
 
 ## [0.5.0] - 2026-08-27
 

@@ -1,6 +1,6 @@
 {
   "name": "capturist",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Configuration-driven static screenshot engine and Open Graph image generator powered by Playwright.",
   "keywords": [
     "screenshot",
@@ -74,3 +74,4 @@
     "typescript": "^7.0.2"
   }
 }
+
